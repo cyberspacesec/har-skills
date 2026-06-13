@@ -40,6 +40,7 @@ func init() {
 	replayCmd.Flags().Int("index", -1, "仅重放指定索引的条目")
 	replayCmd.Flags().String("filter", "", "URL过滤模式 (仅重放匹配的条目)")
 	replayCmd.Flags().Bool("dry-run", false, "仅预览将重放的请求，不实际执行")
+	replayCmd.Flags().String("save-har", "", "Save replay results as a new HAR file")
 }
 
 func runReplay(cmd *cobra.Command, args []string) error {
@@ -88,6 +89,25 @@ func runReplay(cmd *cobra.Command, args []string) error {
 	results, err := replayEntries(entries, opts)
 	if err != nil {
 		return fmt.Errorf("重放请求失败: %w", err)
+	}
+
+	// 保存重放结果为HAR文件
+	saveHarPath, _ := cmd.Flags().GetString("save-har")
+	if saveHarPath != "" {
+		// Collect raw ReplayResults for ReplayResultsToHar
+		replayResults := make([]*har.ReplayResult, 0)
+		for i, entry := range entries {
+			result, replayErr := entry.Replay(opts)
+			if replayErr != nil {
+				continue
+			}
+			_ = i
+			replayResults = append(replayResults, result)
+		}
+		replayHar := har.ReplayResultsToHar(replayResults)
+		if saveErr := replayHar.SaveToFile(saveHarPath, true); saveErr != nil {
+			return fmt.Errorf("保存重放结果HAR失败: %w", saveErr)
+		}
 	}
 
 	return internal.WriteOutput(cmd, results, func() string {

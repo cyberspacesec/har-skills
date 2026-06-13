@@ -34,6 +34,7 @@ func init() {
 	transformCmd.Flags().String("add-header-target", "both", "添加请求头目标 (request/response/both)")
 	transformCmd.Flags().StringSlice("change-scheme", nil, "协议变更规则 (格式: from->to)")
 	transformCmd.Flags().StringSlice("remove-query-param", nil, "移除指定查询参数")
+	transformCmd.Flags().Bool("in-place", false, "Modify the input file in place")
 }
 
 func runTransform(cmd *cobra.Command, args []string) error {
@@ -106,7 +107,12 @@ func runTransform(cmd *cobra.Command, args []string) error {
 
 	// 应用通用转换规则
 	if len(rules) > 0 {
-		h = h.Transform(rules)
+		inPlace, _ := cmd.Flags().GetBool("in-place")
+		if inPlace {
+			h.TransformInPlace(rules)
+		} else {
+			h = h.Transform(rules)
+		}
 	}
 
 	// 输出转换后的HAR JSON

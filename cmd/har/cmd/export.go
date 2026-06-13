@@ -11,22 +11,29 @@ import (
 // exportCmd 导出HAR文件为其他格式
 var exportCmd = &cobra.Command{
 	Use:   "export [format]",
-	Short: "导出HAR文件为其他格式",
-	Long: `将HAR文件导出为指定的格式。支持以下格式：
+	Short: "Export HAR file to another format",
+	Long: `Export HAR file to a specified format. Supported formats:
 
-  curl    - cURL命令
-  wget    - Wget命令
-  python  - Python requests代码
-  postman - Postman Collection JSON
-  xml     - XML格式
-  yaml    - YAML格式
-  json    - 标准HAR JSON格式
+  curl     - cURL commands
+  wget     - Wget commands
+  python   - Python requests code
+  postman  - Postman Collection JSON
+  xml      - XML format
+  yaml     - YAML format
+  json     - Standard HAR JSON format
+  jsonl    - JSON Lines format (one entry per line)
+  csv      - CSV table format
+  markdown - Markdown table format
+  html     - HTML table format
+  text     - Plain text table format
 
-示例:
+Examples:
   har -f capture.har export curl
   har -f capture.har export python -o replay.py
   har -f capture.har export postman --index 0
-  har -f capture.har export yaml --filter "api/users"`,
+  har -f capture.har export csv --filter "api/users"
+  har -f capture.har export markdown -o report.md
+  har -f capture.har export jsonl -o entries.jsonl`,
 	Args: cobra.ExactArgs(1),
 	RunE: runExport,
 }
@@ -34,8 +41,8 @@ var exportCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(exportCmd)
 
-	exportCmd.Flags().Int("index", -1, "仅导出指定索引的条目")
-	exportCmd.Flags().String("filter", "", "URL过滤模式 (仅导出匹配的条目)")
+	exportCmd.Flags().Int("index", -1, "Export only the entry at this index")
+	exportCmd.Flags().String("filter", "", "URL filter pattern (export only matching entries)")
 }
 
 func runExport(cmd *cobra.Command, args []string) error {
@@ -55,7 +62,7 @@ func runExport(cmd *cobra.Command, args []string) error {
 	idx, _ := cmd.Flags().GetInt("index")
 	if idx >= 0 {
 		if idx >= len(h.Log.Entries) {
-			return fmt.Errorf("索引 %d 超出范围 (共 %d 个条目)", idx, len(h.Log.Entries))
+			return fmt.Errorf("index %d out of range (total %d entries)", idx, len(h.Log.Entries))
 		}
 		h = h.Clone()
 		h.Log.Entries = h.Log.Entries[idx : idx+1]
@@ -73,29 +80,59 @@ func runExport(cmd *cobra.Command, args []string) error {
 	case "postman":
 		data, jsonErr := h.ToPostmanCollection()
 		if jsonErr != nil {
-			return fmt.Errorf("导出Postman Collection失败: %w", jsonErr)
+			return fmt.Errorf("failed to export Postman Collection: %w", jsonErr)
 		}
 		output = string(data)
 	case "xml":
 		xmlStr, xmlErr := h.ToXML()
 		if xmlErr != nil {
-			return fmt.Errorf("导出XML失败: %w", xmlErr)
+			return fmt.Errorf("failed to export XML: %w", xmlErr)
 		}
 		output = xmlStr
 	case "yaml":
 		yamlStr, yamlErr := h.ToYAML()
 		if yamlErr != nil {
-			return fmt.Errorf("导出YAML失败: %w", yamlErr)
+			return fmt.Errorf("failed to export YAML: %w", yamlErr)
 		}
 		output = yamlStr
 	case "json":
 		data, jsonErr := h.ToJSON(true)
 		if jsonErr != nil {
-			return fmt.Errorf("导出JSON失败: %w", jsonErr)
+			return fmt.Errorf("failed to export JSON: %w", jsonErr)
 		}
 		output = string(data)
+	case "jsonl":
+		jsonlStr, jsonlErr := h.ToJSONLines()
+		if jsonlErr != nil {
+			return fmt.Errorf("failed to export JSONL: %w", jsonlErr)
+		}
+		output = jsonlStr
+	case "csv":
+		result, err := h.Convert(har.FormatCSV, har.DefaultConvertOptions())
+		if err != nil {
+			return fmt.Errorf("failed to export CSV: %w", err)
+		}
+		output = result
+	case "markdown", "md":
+		result, err := h.Convert(har.FormatMarkdown, har.DefaultConvertOptions())
+		if err != nil {
+			return fmt.Errorf("failed to export Markdown: %w", err)
+		}
+		output = result
+	case "html":
+		result, err := h.Convert(har.FormatHTML, har.DefaultConvertOptions())
+		if err != nil {
+			return fmt.Errorf("failed to export HTML: %w", err)
+		}
+		output = result
+	case "text":
+		result, err := h.Convert(har.FormatText, har.DefaultConvertOptions())
+		if err != nil {
+			return fmt.Errorf("failed to export text: %w", err)
+		}
+		output = result
 	default:
-		return fmt.Errorf("不支持的导出格式: %s (支持: curl, wget, python, postman, xml, yaml, json)", format)
+		return fmt.Errorf("unsupported export format: %s (supported: curl, wget, python, postman, xml, yaml, json, jsonl, csv, markdown, html, text)", format)
 	}
 
 	return internal.WriteStringOutput(cmd, output)

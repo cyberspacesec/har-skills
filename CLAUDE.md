@@ -6,17 +6,57 @@
 
 **HAR Skills** is an AI-oriented Go SDK and CLI tool for HAR (HTTP Archive) files. It provides:
 - **SDK** (`pkg/har/`): 40 Go modules with 70+ methods for HAR parsing, analysis, transformation, and export
-- **CLI** (`cmd/har/`): 20 Cobra-based commands exposing all SDK capabilities via terminal
+- **CLI** (`cmd/har/`): 23 Cobra-based commands exposing all SDK capabilities via terminal
 - **Skill Docs**: Progressive disclosure documentation (this file) for AI agent consumption
 - **Install**: `go install github.com/cyberspacesec/har-skills/cmd/har@latest`
 
 ## Quick Start (CLI)
 
-```bash
-# Install
-go install github.com/cyberspacesec/har-skills/cmd/har@latest
+### Installation
 
-# Basic usage pattern
+**Option 1: Download Pre-built Binary (Recommended)**
+
+Download the latest release for your platform from:
+https://github.com/cyberspacesec/har-skills/releases/latest
+
+```bash
+# Linux x86_64 example
+curl -sL https://github.com/cyberspacesec/har-skills/releases/latest/download/har-skills_0.1.0_linux_x86_64.tar.gz | tar xz
+sudo mv har /usr/local/bin/
+
+# macOS Apple Silicon example
+curl -sL https://github.com/cyberspacesec/har-skills/releases/latest/download/har-skills_0.1.0_darwin_arm64.tar.gz | tar xz
+sudo mv har /usr/local/bin/
+
+# Windows: download .zip, extract har.exe, add to PATH
+```
+
+Available platforms: linux (x86_64/arm64/armv6/armv7/i386), darwin (x86_64/arm64), windows (x86_64/i386), freebsd (x86_64/i386)
+
+**Option 2: Go Install**
+
+```bash
+go install github.com/cyberspacesec/har-skills/cmd/har@latest
+```
+
+**Option 3: Build from Source**
+
+```bash
+git clone https://github.com/cyberspacesec/har-skills.git
+cd har-skills
+go build -o har ./cmd/har/
+
+# With version info
+go build -ldflags "-X github.com/cyberspacesec/har-skills/cmd/har/cmd.version=$(git describe --tags 2>/dev/null || echo dev)" -o har ./cmd/har/
+
+# Cross-compile for other platforms
+GOOS=darwin GOARCH=arm64 go build -o har-darwin-arm64 ./cmd/har/
+GOOS=windows GOARCH=amd64 go build -o har.exe ./cmd/har/
+```
+
+### Basic Usage
+
+```bash
 har -f <har-file> <command> [flags]
 
 # Read from stdin
@@ -79,7 +119,7 @@ har -f capture.har list --domain api.example.com
 
 #### `find` — Search Entries
 
-Search by URL pattern, status code, errors, redirects, or slow requests.
+Search by URL pattern, status code, headers, cookies, time range, server IP, and more.
 
 ```bash
 har -f capture.har find "api/users"        # URL substring match
@@ -87,12 +127,21 @@ har -f capture.har find "^/api/v2" --regex # Regex match
 har -f capture.har find --errors            # All 4xx/5xx
 har -f capture.har find --redirects         # All 3xx
 har -f capture.har find --slow 1000         # Slower than 1s
+har -f capture.har find --slowest 10        # Top 10 slowest
+har -f capture.har find --fastest 5         # Top 5 fastest
+har -f capture.har find --largest 10        # Top 10 by response size
 har -f capture.har find --status-min 400 --status-max 599
 har -f capture.har find --domain api.example.com --content-type "application/json"
-har -f capture.har find --header "Authorization"    # Has auth header
+har -f capture.har find --header "Authorization"              # Has request header
+har -f capture.har find --response-header "Content-Type:application/json"  # Response header
+har -f capture.har find --cookie "session_id"                 # Has cookie
+har -f capture.har find --start-time "2024-01-01T00:00:00Z" --end-time "2024-12-31T23:59:59Z"
+har -f capture.har find --server-ip "10.0.0.1"               # By server IP
+har -f capture.har find --connection "ABC123"                  # By connection ID
+har -f capture.har find --cache-hits                           # Entries with cache hits
 ```
 
-**Flags**: `--regex`, `--method`, `--status-code`, `--status-min`, `--status-max`, `--content-type`, `--domain`, `--header` (stringSlice), `--resource-type`, `--errors`, `--redirects`, `--slow`, `--limit/-n`
+**Flags**: `--regex`, `--method`, `--status-code`, `--status-min`, `--status-max`, `--content-type`, `--domain`, `--header` (stringSlice, request headers), `--response-header` (stringSlice, response headers), `--cookie`, `--start-time`, `--end-time`, `--server-ip`, `--connection`, `--cache-hits`, `--resource-type`, `--errors`, `--redirects`, `--slow`, `--slowest`, `--fastest`, `--largest`, `--limit/-n`
 
 #### `headers` — Show Headers
 
@@ -272,6 +321,56 @@ har -f capture.har cache --url "https://api.example.com"
 
 **Flags**: `--non-cacheable`, `--url`
 
+#### `index` — Build & Query Entry Index
+
+Build an in-memory index for fast lookups by URL, method, status, domain, MIME type, or URL pattern.
+
+```bash
+har -f capture.har index --stats                  # Index statistics
+har -f capture.har index --url "https://api.example.com/users"  # Lookup by exact URL
+har -f capture.har index --method POST             # Lookup by method
+har -f capture.har index --status 404              # Lookup by status code
+har -f capture.har index --domain "api.example.com" # Lookup by domain
+har -f capture.har index --mime "application/json"  # Lookup by MIME type
+har -f capture.har index --pattern "api/v[0-9]+"    # Lookup by URL regex
+```
+
+**Flags**: `--stats`, `--url`, `--method`, `--status`, `--domain`, `--mime`, `--pattern`
+
+#### `domains` — Per-Domain Statistics
+
+Show detailed statistics broken down by domain.
+
+```bash
+har -f capture.har domains                        # All domains sorted by request count
+har -f capture.har domains --sort time            # Sort by total time
+har -f capture.har domains --sort size --limit 10 # Top 10 domains by size
+har -f capture.har domains --sort errors          # Sort by error count
+```
+
+**Flags**: `--sort` (count/time/size/errors), `--limit/-n`
+
+#### `content` — Content Type Analysis
+
+Show content type breakdown with sizes, compression, and MIME category distribution.
+
+```bash
+har -f capture.har content                        # Content summary by category
+har -f capture.har content --by-mime              # Detailed MIME type breakdown
+har -f capture.har content --format json          # JSON output
+```
+
+**Flags**: `--by-mime`
+
+#### `connections` — Connection Reuse Analysis
+
+Show which entries share connections (connection pooling analysis).
+
+```bash
+har -f capture.har connections                    # Connection reuse table
+har -f capture.har connections --format json      # JSON output
+```
+
 #### `waterfall` — Waterfall & Timeline
 
 Visualize request timing as a waterfall, analyze critical path, concurrency, and SLA compliance.
@@ -304,11 +403,11 @@ har -f capture.har transform --change-scheme "http->https"
 har -f capture.har transform --remove-query-param "_"
 ```
 
-**Flags**: `--rewrite-url` (format: from->to), `--remove-header`, `--add-header` (format: name:value), `--add-header-target` (request/response/both), `--change-scheme` (format: from->to), `--remove-query-param`
+**Flags**: `--rewrite-url` (format: from->to), `--remove-header`, `--add-header` (format: name:value), `--add-header-target` (request/response/both), `--change-scheme` (format: from->to), `--remove-query-param`, `--in-place`
 
 #### `export` — Export to Other Formats
 
-Convert HAR data to curl, wget, Python requests, Postman, XML, YAML, or JSON.
+Convert HAR data to various formats for replay, analysis, or documentation.
 
 ```bash
 har -f capture.har export curl                    # Generate curl commands
@@ -318,9 +417,14 @@ har -f capture.har export postman -o collection.json
 har -f capture.har export xml -o capture.xml
 har -f capture.har export yaml -o capture.yaml
 har -f capture.har export json --index 0          # Single entry as JSON
+har -f capture.har export jsonl -o entries.jsonl  # JSON Lines (one per entry)
+har -f capture.har export csv -o data.csv         # CSV table
+har -f capture.har export markdown -o report.md   # Markdown table
+har -f capture.har export html -o report.html     # HTML table
+har -f capture.har export text                    # Plain text table
 ```
 
-**Positional arg**: format (curl/wget/python/postman/xml/yaml/json)
+**Positional arg**: format (curl/wget/python/postman/xml/yaml/json/jsonl/csv/markdown/html/text)
 **Flags**: `--index`, `--filter`
 
 #### `dedup` — Find/Remove Duplicates
@@ -349,9 +453,10 @@ har -f capture.har replay --skip-ssl             # Skip SSL verification
 har -f capture.har replay --index 0              # Replay single entry
 har -f capture.har replay --filter "api"          # Replay only API requests
 har -f capture.har replay --header "Authorization:Bearer token"
+har -f capture.har replay --save-har results.har # Save replay results as HAR
 ```
 
-**Flags**: `--dry-run`, `--timeout`, `--no-follow-redirects`, `--max-redirects`, `--skip-ssl`, `--header`, `--index`, `--filter`
+**Flags**: `--dry-run`, `--timeout`, `--no-follow-redirects`, `--max-redirects`, `--skip-ssl`, `--header`, `--index`, `--filter`, `--save-har`
 
 ---
 

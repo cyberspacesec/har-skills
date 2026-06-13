@@ -113,27 +113,28 @@ release:
 
     **完整安装说明**：参见 [README](https://github.com/cyberspacesec/har-skills#readme)
 
-brews:
-  - name: har
-    homepage: "https://github.com/cyberspacesec/har-skills"
-    description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
-    repository:
-      owner: cyberspacesec
-      name: homebrew-tap
-    directory: Formula
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    test: |
-      system "#{bin}/har --version"
-
-scoops:
-  - name: har
-    homepage: "https://github.com/cyberspacesec/har-skills"
-    description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
-    repository:
-      owner: cyberspacesec
-      name: scoop-bucket
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
+# Homebrew 和 Scoop 配置需在对应 tap/bucket 仓库创建后启用
+# brews:
+#   - name: har
+#     homepage: "https://github.com/cyberspacesec/har-skills"
+#     description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
+#     repository:
+#       owner: cyberspacesec
+#       name: homebrew-tap
+#     directory: Formula
+#     commit_author:
+#       name: goreleaserbot
+#       email: bot@goreleaser.com
+#     test: |
+#       system "#{bin}/har --version"
+#
+# scoops:
+#   - name: har
+#     homepage: "https://github.com/cyberspacesec/har-skills"
+#     description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
+#     repository:
+#       owner: cyberspacesec
+#       name: scoop-bucket
+#     commit_author:
+#       name: goreleaserbot
+#       email: bot@goreleaser.com

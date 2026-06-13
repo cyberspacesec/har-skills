@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -241,6 +240,3 @@ func headersKey(headers []Headers) string {
 	}
 	return sb.String()
 }
-
-// cacheBusterRegex 用于匹配纯数字值的缓存破坏器参数
-var cacheBusterRegex = regexp.MustCompile(`^\d+$`)

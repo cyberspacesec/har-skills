@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cyberspacesec/go-har"
+	"github.com/cyberspacesec/har-skills"
 )
 
 // 演示使用新的函数选项模式API

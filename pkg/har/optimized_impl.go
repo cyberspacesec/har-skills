@@ -14,6 +14,11 @@ func (h *OptimizedHar) GetCreator() Creator {
 	return h.Log.Creator
 }
 
+// GetBrowser 实现HARProvider接口
+func (h *OptimizedHar) GetBrowser() Browser {
+	return Browser{}
+}
+
 // GetEntries 实现HARProvider接口
 func (h *OptimizedHar) GetEntries() []EntryProvider {
 	providers := make([]EntryProvider, len(h.Log.Entries))
@@ -103,6 +108,21 @@ func (e *OptimizedEntries) ToStandard() Entries {
 		entry.Pageref = *e.PageRef
 	}
 
+	// 可选地添加ServerIP
+	if e.ServerIP != nil {
+		entry.ServerIPAddress = *e.ServerIP
+	}
+
+	// 可选地添加Connection
+	if e.Connection != nil {
+		entry.Connection = *e.Connection
+	}
+
+	// 转换缓存
+	if e.Cache != nil {
+		entry.Cache = *e.Cache
+	}
+
 	return entry
 }
 
@@ -184,6 +204,23 @@ func (r *OptimizedRequest) GetHeadersSize() int {
 	return 0
 }
 
+// GetQueryString 实现RequestProvider接口
+func (r *OptimizedRequest) GetQueryString() []QueryString {
+	params := make([]QueryString, 0, len(r.QueryString))
+	for name, value := range r.QueryString {
+		params = append(params, QueryString{
+			Name:  name,
+			Value: value,
+		})
+	}
+	return params
+}
+
+// GetPostData 实现RequestProvider接口
+func (r *OptimizedRequest) GetPostData() *PostData {
+	return r.PostData
+}
+
 // ToStandard 实现RequestProvider接口
 func (r *OptimizedRequest) ToStandard() Request {
 	// 从优化格式转换为标准格式
@@ -191,11 +228,20 @@ func (r *OptimizedRequest) ToStandard() Request {
 		Method:      r.GetMethod(),
 		URL:         r.URL,
 		HTTPVersion: r.HTTPVersion,
+		PostData:    r.PostData,
 	}
 
 	// 转换头部
 	for name, value := range r.Headers {
 		request.Headers = append(request.Headers, Headers{
+			Name:  name,
+			Value: value,
+		})
+	}
+
+	// 转换查询参数
+	for name, value := range r.QueryString {
+		request.QueryString = append(request.QueryString, QueryString{
 			Name:  name,
 			Value: value,
 		})
@@ -352,11 +398,25 @@ func (c *OptimizedContent) GetEncoding() string {
 	return ""
 }
 
+// GetCompression 实现ContentProvider接口
+func (c *OptimizedContent) GetCompression() int {
+	return 0 // OptimizedContent doesn't track compression
+}
+
 // ToStandard 实现ContentProvider接口
 func (c *OptimizedContent) ToStandard() Content {
 	content := Content{
 		Size:     c.Size,
 		MimeType: c.MimeType,
+	}
+	if c.Text != nil {
+		content.Text = *c.Text
+	}
+	if c.Encoding != nil {
+		content.Encoding = *c.Encoding
+	}
+	if c.Comment != nil {
+		content.Comment = *c.Comment
 	}
 	return content
 }

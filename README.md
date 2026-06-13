@@ -1,130 +1,161 @@
-# Go-HAR
+# HAR Skills
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/cyberspacesec/go-har.svg)](https://pkg.go.dev/github.com/cyberspacesec/go-har)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cyberspacesec/go-har)](https://goreportcard.com/report/github.com/cyberspacesec/go-har)
-[![License](https://img.shields.io/github/license/cyberspacesec/go-har)](https://github.com/cyberspacesec/go-har/blob/main/LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/cyberspacesec/har-skills.svg)](https://pkg.go.dev/github.com/cyberspacesec/har-skills)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cyberspacesec/har-skills)](https://goreportcard.com/report/github.com/cyberspacesec/har-skills)
+[![License](https://img.shields.io/github/license/cyberspacesec/har-skills)](https://github.com/cyberspacesec/har-skills/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/cyberspacesec/har-skills)](https://github.com/cyberspacesec/har-skills/releases/latest)
 
-Go-HAR 是一个高性能、灵活的 HTTP Archive (HAR) 解析和处理库，用 Go 语言实现。它为处理 HAR 文件提供了多种策略，从简单的小型文件到需要优化内存使用的大型文件都能高效处理。
+HAR Skills 是一个面向 AI Agent 的 HAR (HTTP Archive) 全能力 SDK 和命令行工具，用 Go 语言实现。它将 HAR 文件的解析、分析、安全审计、性能评分、数据脱敏、请求转换、差异比较、合并拆分、导出等全部能力封装为 **20 个 CLI 命令** 和 **70+ SDK 方法**，并附带渐进式披露文档，可直接作为 AI Agent 的 Skill 使用。
+
+🤖 **AI Agent 使用**：阅读 [CLAUDE.md](./CLAUDE.md) 获取渐进式披露的完整 Skill 文档。
 
 ## 特性
 
-- **多种解析策略**
-  - 标准解析：适用于常规场景
-  - 内存优化：减少大型 HAR 文件的内存占用
-  - 懒加载：延迟加载大型内容字段
-  - 流式处理：逐条处理超大 HAR 文件
-
-- **灵活的接口设计**
-  - 基于接口的设计，支持不同实现之间的互操作
-  - 统一的 API，无论使用哪种解析策略
-
-- **增强的错误处理**
-  - 详细的错误信息和上下文
-  - 部分解析能力和警告收集
-
-- **高级功能**
-  - 高效过滤和搜索
-  - 丰富的统计分析
-  - 可视化和报告生成
+- **20 个 CLI 命令**：info, list, find, headers, timing, extract, diff, merge, split, validate, redact, transform, export, security, cookie, cache, performance, waterfall, dedup, replay
+- **70+ SDK 方法**：覆盖 HAR 文件全生命周期操作
+- **多种解析策略**：标准、内存优化、懒加载、流式处理
+- **安全审计**：头部检查、Cookie安全、混合内容、CORS、信息泄露
+- **性能评分**：Lighthouse 风格的 6 维度评分（A/B/C/D 等级）
+- **数据脱敏**：自动清除密码、令牌、API 密钥、IP 地址
+- **多格式导出**：cURL、Wget、Python requests、Postman、XML、YAML
+- **渐进式披露**：5 层级 Skill 文档，AI Agent 可直接消费
 
 ## 安装
 
+### 预编译二进制（推荐）
+
+从 [GitHub Releases](https://github.com/cyberspacesec/har-skills/releases/latest) 下载对应平台的二进制文件：
+
+| 平台 | 架构 | 下载 |
+|------|------|------|
+| **Linux** | x86_64 | `har-skills_*_linux_x86_64.tar.gz` |
+| **Linux** | arm64 | `har-skills_*_linux_arm64.tar.gz` |
+| **Linux** | armv6 | `har-skills_*_linux_armv6.tar.gz` |
+| **Linux** | armv7 | `har-skills_*_linux_armv7.tar.gz` |
+| **Linux** | i386 | `har-skills_*_linux_i386.tar.gz` |
+| **macOS** | Intel | `har-skills_*_darwin_x86_64.tar.gz` |
+| **macOS** | Apple Silicon | `har-skills_*_darwin_arm64.tar.gz` |
+| **Windows** | x86_64 | `har-skills_*_windows_x86_64.zip` |
+| **Windows** | i386 | `har-skills_*_windows_i386.zip` |
+| **FreeBSD** | x86_64 | `har-skills_*_freebsd_x86_64.tar.gz` |
+| **FreeBSD** | i386 | `har-skills_*_freebsd_i386.tar.gz` |
+
 ```bash
-go get github.com/cyberspacesec/go-har
+# Linux/macOS 示例
+curl -sL https://github.com/cyberspacesec/har-skills/releases/latest/download/har-skills_0.1.0_linux_x86_64.tar.gz | tar xz
+sudo mv har /usr/local/bin/
+
+# 验证
+har --version
+```
+
+### Go Install
+
+```bash
+go install github.com/cyberspacesec/har-skills/cmd/har@latest
+```
+
+### Go Module
+
+```bash
+go get github.com/cyberspacesec/har-skills
 ```
 
 ## 快速开始
 
-### 基本用法
+### CLI 使用
+
+```bash
+# 查看概要
+har -f capture.har info
+
+# 列出请求
+har -f capture.har list --limit 20
+
+# 搜索请求
+har -f capture.har find "api/users"
+har -f capture.har find --errors          # 所有错误请求
+har -f capture.har find --slow 1000       # 慢于1秒的请求
+
+# 安全审计
+har -f capture.har security
+
+# 性能评分
+har -f capture.har performance
+
+# 数据脱敏
+har -f capture.har redact -o clean.har
+
+# 导出为 cURL 命令
+har -f capture.har export curl
+
+# 比较两个 HAR 文件
+har diff v1.har v2.har
+
+# 查看所有命令
+har --help
+```
+
+### SDK 使用
 
 ```go
 package main
 
 import (
-	"fmt"
-	"log"
-	
-	"github.com/cyberspacesec/go-har"
+    "fmt"
+    "log"
+
+    har "github.com/cyberspacesec/har-skills"
 )
 
 func main() {
-	// 解析 HAR 文件
-	harData, err := har.ParseHarFile("example.har")
-	if err != nil {
-		log.Fatalf("无法解析 HAR 文件: %v", err)
-	}
-	
-	// 访问 HAR 数据
-	fmt.Printf("HAR 版本: %s\n", harData.Log.Version)
-	fmt.Printf("条目数量: %d\n", len(harData.Log.Entries))
-	
-	// 遍历所有请求
-	for i, entry := range harData.Log.Entries {
-		fmt.Printf("请求 #%d: %s %s\n", i+1, entry.Request.Method, entry.Request.URL)
-	}
+    // 解析 HAR 文件
+    h, err := har.ParseHarFile("capture.har")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // 统计信息
+    stats := h.Statistics()
+    fmt.Printf("请求数: %d, 平均时间: %.1fms\n", stats.TotalRequests, stats.AvgTime)
+
+    // 安全审计
+    report := h.SecurityAudit()
+    fmt.Printf("安全评分: %d/100\n", report.Score)
+
+    // 性能评分
+    perf := h.PerformanceScore()
+    fmt.Printf("性能等级: %s (%.1f/100)\n", perf.Grade(), perf.Score)
+
+    // 数据脱敏
+    redacted := h.Redact(har.DefaultRedactOptions())
+    _ = redacted // 安全的 HAR 数据
 }
 ```
 
-### 内存优化模式
+## 命令一览
 
-```go
-// 使用内存优化模式处理大型文件
-harData, err := har.ParseHarFile("large.har", har.WithMemoryOptimized())
-if err != nil {
-	log.Fatalf("无法解析 HAR 文件: %v", err)
-}
-
-// 接口保持一致，使用方式相同
-for _, entry := range harData.GetEntries() {
-	fmt.Printf("URL: %s\n", entry.GetRequest().GetURL())
-}
-```
-
-### 懒加载模式
-
-```go
-// 使用懒加载模式延迟加载大型内容
-harData, err := har.ParseHarFile("large_content.har", har.WithLazyLoading())
-if err != nil {
-	log.Fatalf("无法解析 HAR 文件: %v", err)
-}
-
-// 基本信息直接可用，大型内容仅在需要时加载
-for _, entry := range harData.GetEntries() {
-	resp := entry.GetResponse()
-	fmt.Printf("状态码: %d, 内容大小: %d\n", 
-		resp.GetStatus(), 
-		resp.GetContent().GetSize())
-	
-	// 内容仅在需要时加载
-	if resp.GetStatus() == 200 {
-		content := resp.GetContent()
-		text := content.GetText() // 此时才加载内容
-		fmt.Printf("内容长度: %d\n", len(text))
-	}
-}
-```
-
-## 高级用法
-
-查看 [详细文档](./doc/usage.md) 了解更多高级功能，包括：
-
-- 流式解析超大 HAR 文件
-- 增强的错误处理
-- 过滤和搜索功能
-- 统计分析和可视化
-- 命令行工具
+| 命令 | 用途 | 命令 | 用途 |
+|------|------|------|------|
+| `info` | 文件概要 | `validate` | 规范验证 |
+| `list` | 列出条目 | `redact` | 数据脱敏 |
+| `find` | 搜索条目 | `transform` | 请求转换 |
+| `headers` | 查看头部 | `export` | 格式导出 |
+| `timing` | 计时分析 | `security` | 安全审计 |
+| `extract` | 提取内容 | `cookie` | Cookie分析 |
+| `diff` | 文件比较 | `cache` | 缓存分析 |
+| `merge` | 文件合并 | `performance` | 性能评分 |
+| `split` | 文件拆分 | `waterfall` | 瀑布流 |
+| | | `dedup` | 去重 |
+| | | `replay` | HTTP重放 |
 
 ## 项目结构
 
-- `pkg/har/` - 核心 HAR 解析和处理代码
-- `examples/` - 示例代码和实用工具
-  - `examples/statistics/` - 统计分析示例
-  - `examples/visualization/` - 可视化示例
-  - `examples/cli-tool/` - 命令行工具示例
-- `doc/` - 详细文档
-  - `doc/usage.md` - 使用文档
-  - `doc/structure.md` - HAR 结构文档
+- `pkg/har/` — SDK 核心代码（40 模块，741 测试）
+- `cmd/har/` — CLI 命令（20 个 Cobra 命令）
+- `CLAUDE.md` — AI Agent Skill 渐进式披露文档
+- `examples/` — 示例代码
+- `doc/` — 详细文档
 
 ## 贡献
 
@@ -133,4 +164,3 @@ for _, entry := range harData.GetEntries() {
 ## 许可证
 
 本项目使用 [MIT 许可证](LICENSE)。
-

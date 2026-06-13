@@ -2,6 +2,7 @@ package har
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -79,13 +80,20 @@ func matchesFilter(entry Entries, options FilterOptions) bool {
 		return false
 	}
 
-	// 内容类型过滤
+	// 内容类型过滤（优先使用MimeType字段，回退到响应头）
 	if options.ContentType != "" {
 		matched := false
-		for _, header := range entry.Response.Headers {
-			if strings.EqualFold(header.Name, "Content-Type") && strings.Contains(header.Value, options.ContentType) {
-				matched = true
-				break
+		// 首先检查Content.MimeType字段
+		if strings.Contains(strings.ToLower(entry.Response.Content.MimeType), strings.ToLower(options.ContentType)) {
+			matched = true
+		}
+		// 如果MimeType没有匹配，检查Content-Type响应头
+		if !matched {
+			for _, header := range entry.Response.Headers {
+				if strings.EqualFold(header.Name, "Content-Type") && strings.Contains(strings.ToLower(header.Value), strings.ToLower(options.ContentType)) {
+					matched = true
+					break
+				}
 			}
 		}
 		if !matched {
@@ -207,6 +215,129 @@ func (h *Har) FindSlowRequests(minDuration float64) *FilterResult {
 	})
 }
 
+// FindByDomain 按域名查找
+func (h *Har) FindByDomain(domain string) *FilterResult {
+	var result []Entries
+	for _, entry := range h.Log.Entries {
+		if d := extractDomain(entry.Request.URL); d == domain {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
+}
+
+// FindByHeader 按请求头查找
+func (h *Har) FindByHeader(name, value string) *FilterResult {
+	return h.Filter(FilterOptions{
+		HeaderName:  name,
+		HeaderValue: value,
+	})
+}
+
+// FindByResponseHeader 按响应头查找
+func (h *Har) FindByResponseHeader(name, value string) *FilterResult {
+	return h.Filter(FilterOptions{
+		RespHeaderName:  name,
+		RespHeaderValue: value,
+	})
+}
+
+// FindByCookie 按Cookie名称查找（同时搜索请求和响应Cookie）
+func (h *Har) FindByCookie(name string) *FilterResult {
+	var result []Entries
+	for _, entry := range h.Log.Entries {
+		found := false
+		// 搜索请求Cookie
+		for _, cookie := range entry.Request.Cookies {
+			if cookie.Name == name {
+				found = true
+				break
+			}
+		}
+		// 搜索响应Cookie
+		if !found {
+			for _, cookie := range entry.Response.Cookies {
+				if cookie.Name == name {
+					found = true
+					break
+				}
+			}
+		}
+		if found {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
+}
+
+// FindByStatusCodeRange 按状态码范围查找
+func (h *Har) FindByStatusCodeRange(min, max int) *FilterResult {
+	return h.Filter(FilterOptions{
+		StatusCodeMin: min,
+		StatusCodeMax: max,
+	})
+}
+
+// FindRedirects 查找所有重定向请求(3xx)
+func (h *Har) FindRedirects() *FilterResult {
+	return h.Filter(FilterOptions{
+		StatusCodeMin: 300,
+		StatusCodeMax: 399,
+	})
+}
+
+// FindCacheHits 查找所有缓存命中的请求
+// 缓存命中判定：BeforeRequest或AfterRequest中HitCount > 0
+func (h *Har) FindCacheHits() *FilterResult {
+	var result []Entries
+	for _, entry := range h.Log.Entries {
+		hit := false
+		if entry.Cache.BeforeRequest != nil && entry.Cache.BeforeRequest.HitCount > 0 {
+			hit = true
+		}
+		if entry.Cache.AfterRequest != nil && entry.Cache.AfterRequest.HitCount > 0 {
+			hit = true
+		}
+		if hit {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
+}
+
+// FindByResourceType 按资源类型查找
+func (h *Har) FindByResourceType(resourceType string) *FilterResult {
+	return h.Filter(FilterOptions{
+		ResourceType: resourceType,
+	})
+}
+
+// FindByServerIP 按服务器IP地址查找
+func (h *Har) FindByServerIP(ip string) *FilterResult {
+	var result []Entries
+	for _, entry := range h.Log.Entries {
+		if entry.ServerIPAddress == ip {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
+}
+
+// FindByConnection 按连接ID查找
+func (h *Har) FindByConnection(connectionID string) *FilterResult {
+	var result []Entries
+	for _, entry := range h.Log.Entries {
+		if entry.Connection == connectionID {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
+}
+
+// ExtractDomain 从URL中提取域名（公共API）
+// 支持带端口号、用户信息等URL格式
+var ExtractDomain = extractDomain
+
 // Count 获取过滤结果数量
 func (fr *FilterResult) Count() int {
 	return len(fr.Entries)
@@ -218,6 +349,92 @@ func (fr *FilterResult) First() *Entries {
 		return &fr.Entries[0]
 	}
 	return nil
+}
+
+// Last 获取最后一个结果
+func (fr *FilterResult) Last() *Entries {
+	if len(fr.Entries) > 0 {
+		return &fr.Entries[len(fr.Entries)-1]
+	}
+	return nil
+}
+
+// At 按索引获取结果
+func (fr *FilterResult) At(index int) *Entries {
+	if index >= 0 && index < len(fr.Entries) {
+		return &fr.Entries[index]
+	}
+	return nil
+}
+
+// SortByTime 按请求开始时间排序
+func (fr *FilterResult) SortByTime() *FilterResult {
+	sort.Slice(fr.Entries, func(i, j int) bool {
+		return fr.Entries[i].StartedDateTime.Before(fr.Entries[j].StartedDateTime)
+	})
+	return fr
+}
+
+// SortByDuration 按请求耗时排序（从快到慢）
+func (fr *FilterResult) SortByDuration() *FilterResult {
+	sort.Slice(fr.Entries, func(i, j int) bool {
+		return fr.Entries[i].Time < fr.Entries[j].Time
+	})
+	return fr
+}
+
+// SortByDurationDesc 按请求耗时排序（从慢到快）
+func (fr *FilterResult) SortByDurationDesc() *FilterResult {
+	sort.Slice(fr.Entries, func(i, j int) bool {
+		return fr.Entries[i].Time > fr.Entries[j].Time
+	})
+	return fr
+}
+
+// SortBySize 按响应大小排序（从小到大）
+func (fr *FilterResult) SortBySize() *FilterResult {
+	sort.Slice(fr.Entries, func(i, j int) bool {
+		return fr.Entries[i].Response.Content.Size < fr.Entries[j].Response.Content.Size
+	})
+	return fr
+}
+
+// SortBySizeDesc 按响应大小排序（从大到小）
+func (fr *FilterResult) SortBySizeDesc() *FilterResult {
+	sort.Slice(fr.Entries, func(i, j int) bool {
+		return fr.Entries[i].Response.Content.Size > fr.Entries[j].Response.Content.Size
+	})
+	return fr
+}
+
+// Limit 限制结果数量
+func (fr *FilterResult) Limit(n int) *FilterResult {
+	if n >= len(fr.Entries) {
+		return fr
+	}
+	fr.Entries = fr.Entries[:n]
+	return fr
+}
+
+// Offset 跳过前N个结果
+func (fr *FilterResult) Offset(n int) *FilterResult {
+	if n >= len(fr.Entries) {
+		fr.Entries = nil
+		return fr
+	}
+	fr.Entries = fr.Entries[n:]
+	return fr
+}
+
+// Chain 在当前过滤结果基础上继续过滤
+func (fr *FilterResult) Chain(options FilterOptions) *FilterResult {
+	var result []Entries
+	for _, entry := range fr.Entries {
+		if matchesFilter(entry, options) {
+			result = append(result, entry)
+		}
+	}
+	return &FilterResult{Entries: result}
 }
 
 // ToHar 将过滤结果转换为新的Har对象

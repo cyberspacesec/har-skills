@@ -10,6 +10,9 @@ type HARProvider interface {
 	// GetCreator 获取创建者信息
 	GetCreator() Creator
 
+	// GetBrowser 获取浏览器信息
+	GetBrowser() Browser
+
 	// GetEntries 获取所有条目
 	GetEntries() []EntryProvider
 
@@ -60,6 +63,12 @@ type RequestProvider interface {
 
 	// GetCookies 获取Cookie信息
 	GetCookies() []CookieProvider
+
+	// GetQueryString 获取查询参数
+	GetQueryString() []QueryString
+
+	// GetPostData 获取POST数据
+	GetPostData() *PostData
 
 	// GetBodySize 获取请求体大小
 	GetBodySize() int
@@ -156,6 +165,9 @@ type ContentProvider interface {
 
 	// GetEncoding 获取编码（如果有）
 	GetEncoding() string
+
+	// GetCompression 获取压缩节省字节数
+	GetCompression() int
 
 	// ToStandard 转换为标准Content对象
 	ToStandard() Content

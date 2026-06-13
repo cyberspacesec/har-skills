@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cyberspacesec/go-har"
+	"github.com/cyberspacesec/har-skills"
 )
 
 // 简易可视化类型

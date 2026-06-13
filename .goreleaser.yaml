@@ -1,0 +1,139 @@
+# GoReleaser 配置 — HAR Skills CLI 多平台构建
+# https://goreleaser.com
+
+project_name: har-skills
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: har
+    main: ./cmd/har/
+    binary: har
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/cyberspacesec/har-skills/cmd/har/cmd.version={{.Version}}
+      - -X github.com/cyberspacesec/har-skills/cmd/har/cmd.commit={{.Commit}}
+      - -X github.com/cyberspacesec/har-skills/cmd/har/cmd.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+      - arm
+    goarm:
+      - "6"
+      - "7"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "arm" }}armv{{ .Arm }}
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CLAUDE.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "merge conflict"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: "🚀 新功能"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "🐛 Bug 修复"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "⚡ 性能优化"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "🔧 其他改动"
+      order: 999
+
+release:
+  github:
+    owner: cyberspacesec
+    name: har-skills
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## HAR Skills - AI Agent Skill for HAR File Analysis
+
+    🤖 作为 AI Agent Skill 使用：阅读 [CLAUDE.md](https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md)
+
+    📦 安装：`go install github.com/cyberspacesec/har-skills/cmd/har@latest`
+  footer: |
+    ---
+
+    **完整安装说明**：参见 [README](https://github.com/cyberspacesec/har-skills#readme)
+
+brews:
+  - name: har
+    homepage: "https://github.com/cyberspacesec/har-skills"
+    description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
+    repository:
+      owner: cyberspacesec
+      name: homebrew-tap
+    directory: Formula
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    test: |
+      system "#{bin}/har --version"
+
+scoops:
+  - name: har
+    homepage: "https://github.com/cyberspacesec/har-skills"
+    description: "HAR Skills — AI-oriented CLI tool for HAR file analysis"
+    repository:
+      owner: cyberspacesec
+      name: scoop-bucket
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com

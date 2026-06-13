@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cyberspacesec/go-har"
+	"github.com/cyberspacesec/har-skills"
 )
 
 func main() {

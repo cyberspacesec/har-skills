@@ -19,7 +19,7 @@ Go-HAR 提供以下主要功能：
 使用 `go get` 命令添加 Go-HAR 到您的项目：
 
 ```bash
-go get github.com/cyberspacesec/go-har
+go get github.com/cyberspacesec/har-skills
 ```
 
 ## 基本用法
@@ -35,7 +35,7 @@ import (
     "fmt"
     "log"
     
-    "github.com/cyberspacesec/go-har"
+    "github.com/cyberspacesec/har-skills"
 )
 
 func main() {
@@ -66,7 +66,7 @@ package main
 import (
     "log"
     
-    "github.com/cyberspacesec/go-har"
+    "github.com/cyberspacesec/har-skills"
 )
 
 func main() {

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cyberspacesec/go-har"
+	"github.com/cyberspacesec/har-skills"
 )
 
 // 统计类型
@@ -246,7 +246,7 @@ func extractRequestInfo(entry har.Entries) RequestInfo {
 
 	// 识别缓存状态 - 简化版，实际使用时可能需要调整
 	// 由于实际的HAR结构复杂性，简化处理方式
-	if entry.Cache.AfterRequest != (har.AfterRequest{}) {
+	if entry.Cache.AfterRequest != nil {
 		info.CacheStatus = "hit"
 	}
 

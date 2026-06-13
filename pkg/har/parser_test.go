@@ -150,7 +150,7 @@ func createFullHar() Har {
 							{Name: "Accept", Value: "application/json"},
 							{Name: "User-Agent", Value: "Go-HAR Test"},
 						},
-						QueryString: []Headers{
+						QueryString: []QueryString{
 							{Name: "id", Value: "12345"},
 							{Name: "format", Value: "json"},
 						},

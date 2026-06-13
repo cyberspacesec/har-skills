@@ -14,6 +14,11 @@ func (h *Har) GetCreator() Creator {
 	return h.Log.Creator
 }
 
+// GetBrowser 实现HARProvider接口
+func (h *Har) GetBrowser() Browser {
+	return h.Log.Browser
+}
+
 // GetEntries 实现HARProvider接口
 func (h *Har) GetEntries() []EntryProvider {
 	providers := make([]EntryProvider, len(h.Log.Entries))
@@ -117,6 +122,16 @@ func (r *Request) GetBodySize() int {
 // GetHeadersSize 实现RequestProvider接口
 func (r *Request) GetHeadersSize() int {
 	return r.HeadersSize
+}
+
+// GetQueryString 实现RequestProvider接口
+func (r *Request) GetQueryString() []QueryString {
+	return r.QueryString
+}
+
+// GetPostData 实现RequestProvider接口
+func (r *Request) GetPostData() *PostData {
+	return r.PostData
 }
 
 // ToStandard 实现RequestProvider接口
@@ -257,14 +272,17 @@ func (c *Content) GetMimeType() string {
 
 // GetText 实现ContentProvider接口
 func (c *Content) GetText() string {
-	// 基本Content结构没有Text字段
-	return ""
+	return c.Text
 }
 
 // GetEncoding 实现ContentProvider接口
 func (c *Content) GetEncoding() string {
-	// 基本Content结构没有Encoding字段
-	return ""
+	return c.Encoding
+}
+
+// GetCompression 实现ContentProvider接口
+func (c *Content) GetCompression() int {
+	return c.Compression
 }
 
 // ToStandard 实现ContentProvider接口

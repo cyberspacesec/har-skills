@@ -238,3 +238,218 @@ func TestHarVersionOptions(t *testing.T) {
 		assert.False(t, opts.autoDetectVersion)
 	})
 }
+
+
+func TestValidatePostDataAndQueryString(t *testing.T) {
+	t.Run("MissingPostDataMimeType", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request: Request{
+							Method:      "POST",
+							URL:         "https://example.com/api",
+							HTTPVersion: "HTTP/1.1",
+							PostData:    &PostData{MimeType: "", Text: "data"},
+						},
+						Response: Response{
+							Status:      200,
+							HTTPVersion: "HTTP/1.1",
+							Content:     Content{Size: 100, MimeType: "text/html"},
+						},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.Error(t, err)
+	})
+
+	t.Run("ValidPostData", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request: Request{
+							Method:      "POST",
+							URL:         "https://example.com/api",
+							HTTPVersion: "HTTP/1.1",
+							PostData:    &PostData{MimeType: "application/json", Text: `{"key":"value"}`},
+						},
+						Response: Response{
+							Status:      200,
+							HTTPVersion: "HTTP/1.1",
+							Content:     Content{Size: 100, MimeType: "text/html"},
+						},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.NoError(t, err)
+	})
+
+	t.Run("MissingQueryStringName", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request: Request{
+							Method:      "GET",
+							URL:         "https://example.com/api",
+							HTTPVersion: "HTTP/1.1",
+							QueryString: []QueryString{{Name: "", Value: "test"}},
+						},
+						Response: Response{
+							Status:      200,
+							HTTPVersion: "HTTP/1.1",
+							Content:     Content{Size: 100, MimeType: "text/html"},
+						},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.Error(t, err)
+	})
+}
+
+func TestValidateBrowser(t *testing.T) {
+	t.Run("BrowserNameWithoutVersion", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Browser: Browser{Name: "Chrome", Version: ""},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request:         Request{Method: "GET", URL: "https://example.com", HTTPVersion: "HTTP/1.1"},
+						Response:        Response{Status: 200, HTTPVersion: "HTTP/1.1", Content: Content{Size: 100, MimeType: "text/html"}},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.Error(t, err)
+	})
+
+	t.Run("BrowserWithVersion", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Browser: Browser{Name: "Chrome", Version: "100.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request:         Request{Method: "GET", URL: "https://example.com", HTTPVersion: "HTTP/1.1"},
+						Response:        Response{Status: 200, HTTPVersion: "HTTP/1.1", Content: Content{Size: 100, MimeType: "text/html"}},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.NoError(t, err)
+	})
+}
+
+func TestValidateContentEncoding(t *testing.T) {
+	t.Run("InvalidEncoding", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request:         Request{Method: "GET", URL: "https://example.com", HTTPVersion: "HTTP/1.1"},
+						Response: Response{
+							Status:      200,
+							HTTPVersion: "HTTP/1.1",
+							Content:     Content{Size: 100, MimeType: "text/html", Encoding: "invalid"},
+						},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.Error(t, err)
+	})
+
+	t.Run("Base64Encoding", func(t *testing.T) {
+		har := &Har{
+			Log: Log{
+				Version: HarSpecVersion12,
+				Creator: Creator{Name: "Test", Version: "1.0"},
+				Entries: []Entries{
+					{
+						StartedDateTime: time.Now(),
+						Request:         Request{Method: "GET", URL: "https://example.com", HTTPVersion: "HTTP/1.1"},
+						Response: Response{
+							Status:      200,
+							HTTPVersion: "HTTP/1.1",
+							Content:     Content{Size: 100, MimeType: "text/html", Encoding: "base64"},
+						},
+					},
+				},
+			},
+		}
+		err := ValidateHarFile(har)
+		assert.NoError(t, err)
+	})
+}
+
+func TestValidateNegativeTime(t *testing.T) {
+	har := &Har{
+		Log: Log{
+			Version: HarSpecVersion12,
+			Creator: Creator{Name: "Test", Version: "1.0"},
+			Entries: []Entries{
+				{
+					Time:            -100,
+					StartedDateTime: time.Now(),
+					Request:         Request{Method: "GET", URL: "https://example.com", HTTPVersion: "HTTP/1.1"},
+					Response:        Response{Status: 200, HTTPVersion: "HTTP/1.1", Content: Content{Size: 100, MimeType: "text/html"}},
+				},
+			},
+		},
+	}
+	err := ValidateHarFile(har)
+	assert.Error(t, err)
+}
+
+func TestValidatePostDataParamsV11(t *testing.T) {
+	har := &Har{
+		Log: Log{
+			Version: HarSpecVersion11,
+			Creator: Creator{Name: "Test", Version: "1.0"},
+			Entries: []Entries{
+				{
+					StartedDateTime: time.Now(),
+					Request: Request{
+						Method:      "POST",
+						URL:         "https://example.com",
+						HTTPVersion: "HTTP/1.1",
+						PostData: &PostData{
+							MimeType: "application/x-www-form-urlencoded",
+							Params:   []Param{{Name: "", Value: "test"}},
+						},
+					},
+					Response: Response{Status: 200, HTTPVersion: "HTTP/1.1", Content: Content{Size: 100, MimeType: "text/html"}},
+				},
+			},
+		},
+	}
+	err := ValidateHarFile(har)
+	assert.Error(t, err)
+}

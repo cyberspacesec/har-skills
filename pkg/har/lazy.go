@@ -10,8 +10,9 @@ import (
 // LazyContent 延迟加载的内容
 type LazyContent struct {
 	// 基本信息总是加载
-	Size     int    `json:"size"`
-	MimeType string `json:"mimeType"`
+	Size        int    `json:"size"`
+	MimeType    string `json:"mimeType"`
+	Compression int    `json:"compression,omitempty"`
 
 	// 实际内容延迟加载
 	Text     *string `json:"text,omitempty"`
@@ -37,6 +38,7 @@ type LazyResponse struct {
 	Content      *LazyContent `json:"content"`
 	TransferSize int          `json:"_transferSize"`
 	Error        any          `json:"_error"`
+	Comment      string       `json:"comment,omitempty"`
 }
 
 // LazyEntries 带有延迟加载内容的条目
@@ -53,6 +55,7 @@ type LazyEntries struct {
 	ResourceType    string       `json:"_resourceType"`
 	Connection      string       `json:"connection"`
 	ServerIPAddress string       `json:"serverIPAddress"`
+	Comment         string       `json:"comment,omitempty"`
 }
 
 // LazyHar 带有延迟加载功能的HAR对象
@@ -60,6 +63,7 @@ type LazyHar struct {
 	Log struct {
 		Version string        `json:"version"`
 		Creator Creator       `json:"creator"`
+		Browser Browser       `json:"browser,omitempty"`
 		Pages   []Pages       `json:"pages"`
 		Entries []LazyEntries `json:"entries"`
 	} `json:"log"`
@@ -73,9 +77,10 @@ func (lc *LazyContent) UnmarshalJSON(data []byte) error {
 
 	// 解析基本信息
 	type BasicContent struct {
-		Size     int    `json:"size"`
-		MimeType string `json:"mimeType"`
-		Comment  string `json:"comment"`
+		Size        int    `json:"size"`
+		MimeType    string `json:"mimeType"`
+		Compression int    `json:"compression"`
+		Comment     string `json:"comment"`
 	}
 
 	var basic BasicContent
@@ -85,6 +90,7 @@ func (lc *LazyContent) UnmarshalJSON(data []byte) error {
 
 	lc.Size = basic.Size
 	lc.MimeType = basic.MimeType
+	lc.Compression = basic.Compression
 	lc.Comment = basic.Comment
 	lc.loaded = false
 
@@ -161,6 +167,7 @@ func (lh *LazyHar) ToStandardHar() (*Har, error) {
 		Log: Log{
 			Version: lh.Log.Version,
 			Creator: lh.Log.Creator,
+			Browser: lh.Log.Browser,
 			Pages:   lh.Log.Pages,
 			Entries: make([]Entries, len(lh.Log.Entries)),
 		},
@@ -181,7 +188,8 @@ func (lh *LazyHar) ToStandardHar() (*Har, error) {
 			ResourceType:    lazyEntry.ResourceType,
 			Connection:      lazyEntry.Connection,
 			ServerIPAddress: lazyEntry.ServerIPAddress,
-		}
+				Comment:         lazyEntry.Comment,
+			}
 
 		// 复制响应字段
 		entry.Response = Response{
@@ -195,6 +203,7 @@ func (lh *LazyHar) ToStandardHar() (*Har, error) {
 			BodySize:     lazyEntry.Response.BodySize,
 			TransferSize: lazyEntry.Response.TransferSize,
 			Error:        lazyEntry.Response.Error,
+				Comment:      lazyEntry.Response.Comment,
 		}
 
 		// 复制内容

@@ -21,6 +21,21 @@ func NewHar() *Har {
 	}
 }
 
+// SetBrowser 设置HAR文件的浏览器信息
+func (h *Har) SetBrowser(name, version string) *Har {
+	h.Log.Browser = Browser{
+		Name:    name,
+		Version: version,
+	}
+	return h
+}
+
+// SetVersion 设置HAR规范版本
+func (h *Har) SetVersion(version string) *Har {
+	h.Log.Version = version
+	return h
+}
+
 // SetCreator 设置HAR文件的创建者信息
 func (h *Har) SetCreator(name, version string) *Har {
 	h.Log.Creator.Name = name
@@ -61,7 +76,7 @@ func (h *Har) AddEntry(method, url, httpVersion string, pageref string) *Entries
 			HTTPVersion: httpVersion,
 			Headers:     []Headers{},
 			Cookies:     []Cookie{},
-			QueryString: []Headers{},
+			QueryString: []QueryString{},
 			HeadersSize: -1,
 			BodySize:    -1,
 		},
@@ -139,7 +154,78 @@ func (e *Entries) SetTimings(blocked, dns, connect, send, wait, receive, ssl flo
 	e.Timings.Ssl = ssl
 
 	// 计算总时间
+	// 注意：根据HAR规范，SSL时间包含在connect时间内，不重复计算
 	e.Time = blocked + dns + connect + send + wait + receive
+	return e
+}
+
+// AddCookie 添加请求Cookie
+func (e *Entries) AddCookie(name, value string) *Entries {
+	e.Request.Cookies = append(e.Request.Cookies, Cookie{
+		Name:  name,
+		Value: value,
+	})
+	return e
+}
+
+// AddResponseCookie 添加响应Cookie
+func (e *Entries) AddResponseCookie(name, value string) *Entries {
+	e.Response.Cookies = append(e.Response.Cookies, Cookie{
+		Name:  name,
+		Value: value,
+	})
+	return e
+}
+
+// AddQueryParameter 添加查询参数
+func (e *Entries) AddQueryParameter(name, value string) *Entries {
+	e.Request.QueryString = append(e.Request.QueryString, QueryString{
+		Name:  name,
+		Value: value,
+	})
+	return e
+}
+
+// SetPostData 设置POST请求体
+func (e *Entries) SetPostData(mimeType, text string) *Entries {
+	e.Request.PostData = &PostData{
+		MimeType: mimeType,
+		Text:     text,
+	}
+	return e
+}
+
+// SetPostDataParams 设置POST表单参数
+func (e *Entries) SetPostDataParams(mimeType string, params []Param) *Entries {
+	e.Request.PostData = &PostData{
+		MimeType: mimeType,
+		Params:   params,
+	}
+	return e
+}
+
+// SetResponseContentText 设置响应内容文本
+func (e *Entries) SetResponseContentText(text string) *Entries {
+	e.Response.Content.Text = text
+	e.Response.Content.Size = len(text)
+	return e
+}
+
+// SetServerIP 设置服务器IP地址
+func (e *Entries) SetServerIP(ip string) *Entries {
+	e.ServerIPAddress = ip
+	return e
+}
+
+// SetConnection 设置连接ID
+func (e *Entries) SetConnection(id string) *Entries {
+	e.Connection = id
+	return e
+}
+
+// SetPageref 设置页面引用
+func (e *Entries) SetPageref(ref string) *Entries {
+	e.Pageref = ref
 	return e
 }
 

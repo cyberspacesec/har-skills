@@ -30,6 +30,8 @@ type ConvertOptions struct {
 	IncludeTimings     bool
 	IncludeHeaders     bool
 	IncludeDateTime    bool
+	IncludePostData    bool // 是否包含POST数据
+	IncludeQueryString bool // 是否包含查询参数
 
 	// 自定义表头（可选，如果不指定则使用默认值）
 	Headers []string
@@ -212,6 +214,15 @@ func getHeaders(options ConvertOptions) []string {
 	if options.IncludeTimings {
 		headers = append(headers, "阻塞(ms)", "DNS(ms)", "连接(ms)", "发送(ms)", "等待(ms)", "接收(ms)")
 	}
+	if options.IncludePostData {
+		headers = append(headers, "POST数据类型", "POST数据")
+	}
+	if options.IncludeQueryString {
+		headers = append(headers, "查询参数")
+	}
+	if options.IncludeHeaders {
+		headers = append(headers, "请求头", "响应头")
+	}
 
 	return headers
 }
@@ -265,6 +276,37 @@ func createDataRow(entry Entries, options ConvertOptions) []string {
 			fmt.Sprintf("%.2f", entry.Timings.Wait),
 			fmt.Sprintf("%.2f", entry.Timings.Receive),
 		)
+	}
+
+	// POST数据
+	if options.IncludePostData {
+		if entry.Request.PostData != nil {
+			row = append(row, entry.Request.PostData.MimeType, entry.Request.PostData.Text)
+		} else {
+			row = append(row, "", "")
+		}
+	}
+
+	// 查询参数
+	if options.IncludeQueryString {
+		var qs []string
+		for _, param := range entry.Request.QueryString {
+			qs = append(qs, fmt.Sprintf("%s=%s", param.Name, param.Value))
+		}
+		row = append(row, strings.Join(qs, "&"))
+	}
+
+	// 请求头和响应头
+	if options.IncludeHeaders {
+		var reqHeaders []string
+		for _, h := range entry.Request.Headers {
+			reqHeaders = append(reqHeaders, fmt.Sprintf("%s: %s", h.Name, h.Value))
+		}
+		var respHeaders []string
+		for _, h := range entry.Response.Headers {
+			respHeaders = append(respHeaders, fmt.Sprintf("%s: %s", h.Name, h.Value))
+		}
+		row = append(row, strings.Join(reqHeaders, "; "), strings.Join(respHeaders, "; "))
 	}
 
 	return row

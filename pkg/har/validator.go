@@ -80,6 +80,14 @@ func validateBasicStructure(har *Har, rootError *HarError) error {
 		rootError.AddPartialError(NewMissingFieldError("log.creator.version"))
 	}
 
+	// 验证Browser字段（如果存在）
+	if har.Log.Browser.Name != "" && har.Log.Browser.Version == "" {
+		rootError.AddPartialError(NewValidationError(
+			"浏览器名称存在但版本为空",
+			"log.browser.version",
+		))
+	}
+
 	// 验证Entries数组
 	// HAR文件可以没有条目，但必须有数组
 	if har.Log.Entries == nil {
@@ -96,20 +104,63 @@ func validateBasicStructure(har *Har, rootError *HarError) error {
 
 // validateHarV11 验证HAR 1.1版本的特定要求
 func validateHarV11(har *Har, rootError *HarError) {
-	// 1.1版本特定验证
-	// 目前没有特别严格的验证，仅支持基本结构验证
+	// 1.1版本：PostData.params中每个param必须有name
+	for i, entry := range har.Log.Entries {
+		if entry.Request.PostData != nil && entry.Request.PostData.Params != nil {
+			for j, param := range entry.Request.PostData.Params {
+				if param.Name == "" {
+					rootError.AddPartialError(NewValidationError(
+						"PostData参数必须有name字段",
+						fmt.Sprintf("log.entries[%d].request.postData.params[%d].name", i, j),
+					))
+				}
+			}
+		}
+	}
 }
 
 // validateHarV12 验证HAR 1.2版本的特定要求
 func validateHarV12(har *Har, rootError *HarError) {
-	// 1.2版本特定验证
-	// 根据规范验证
+	// 1.2版本：验证QueryString必须有name
+	for i, entry := range har.Log.Entries {
+		for j, qs := range entry.Request.QueryString {
+			if qs.Name == "" {
+				rootError.AddPartialError(NewValidationError(
+					"QueryString参数必须有name字段",
+					fmt.Sprintf("log.entries[%d].request.queryString[%d].name", i, j),
+				))
+			}
+		}
+
+		// 验证PostData（如果存在）
+		if entry.Request.PostData != nil {
+			if entry.Request.PostData.MimeType == "" {
+				rootError.AddPartialError(NewValidationError(
+					"PostData必须有mimeType字段",
+					fmt.Sprintf("log.entries[%d].request.postData.mimeType", i),
+				))
+			}
+		}
+	}
+
+	// 验证Content.encoding（如果存在，必须是base64）
+	for i, entry := range har.Log.Entries {
+		if entry.Response.Content.Encoding != "" &&
+			!strings.EqualFold(entry.Response.Content.Encoding, "base64") {
+			rootError.AddPartialError(NewValidationError(
+				fmt.Sprintf("Content.encoding只支持base64，当前为: %s", entry.Response.Content.Encoding),
+				fmt.Sprintf("log.entries[%d].response.content.encoding", i),
+			))
+		}
+	}
 }
 
 // validateHarV13 验证HAR 1.3版本的特定要求
 func validateHarV13(har *Har, rootError *HarError) {
 	// 1.3版本特定验证
 	// 非官方但有一些工具使用此版本
+	// 包含1.2的所有验证
+	validateHarV12(har, rootError)
 }
 
 // validateEntries 验证HAR条目
@@ -125,6 +176,14 @@ func validateEntries(entries []Entries, rootError *HarError) {
 			))
 		}
 
+		// 验证时间值
+		if entry.Time < 0 {
+			rootError.AddPartialError(NewValidationError(
+				"条目时间不能为负",
+				fmt.Sprintf("%s.time", entryPrefix),
+			))
+		}
+
 		// 验证请求
 		validateRequest(entry.Request, fmt.Sprintf("%s.request", entryPrefix), rootError)
 
@@ -133,6 +192,11 @@ func validateEntries(entries []Entries, rootError *HarError) {
 
 		// 验证时间字段
 		validateTimings(entry.Timings, fmt.Sprintf("%s.timings", entryPrefix), rootError)
+
+		// 验证pageref引用的页面是否存在
+		if entry.Pageref != "" {
+			// 页面引用验证可以在这里添加
+		}
 	}
 }
 
@@ -176,6 +240,14 @@ func validateRequest(req Request, fieldPath string, rootError *HarError) {
 
 	// 验证cookies
 	validateCookies(req.Cookies, fmt.Sprintf("%s.cookies", fieldPath), rootError)
+
+	// 验证QueryString
+	validateQueryString(req.QueryString, fmt.Sprintf("%s.queryString", fieldPath), rootError)
+
+	// 验证PostData（如果存在）
+	if req.PostData != nil {
+		validatePostData(req.PostData, fmt.Sprintf("%s.postData", fieldPath), rootError)
+	}
 }
 
 // validateResponse 验证HTTP响应
@@ -215,6 +287,23 @@ func validateContent(content Content, fieldPath string, rootError *HarError) {
 			fmt.Sprintf("%s.mimeType", fieldPath),
 		))
 	}
+
+	// 验证size
+	if content.Size < 0 {
+		rootError.AddPartialError(NewValidationError(
+			"内容大小不能为负",
+			fmt.Sprintf("%s.size", fieldPath),
+		))
+	}
+
+	// 验证encoding（如果存在，必须是已知值）
+	if content.Encoding != "" &&
+		!strings.EqualFold(content.Encoding, "base64") {
+		rootError.AddPartialError(NewValidationError(
+			fmt.Sprintf("不支持的Content.encoding: %s（仅支持base64）", content.Encoding),
+			fmt.Sprintf("%s.encoding", fieldPath),
+		))
+	}
 }
 
 // validateHeaders 验证HTTP头
@@ -245,6 +334,43 @@ func validateCookies(cookies []Cookie, fieldPath string, rootError *HarError) {
 	}
 }
 
+// validateQueryString 验证查询参数
+func validateQueryString(params []QueryString, fieldPath string, rootError *HarError) {
+	for i, param := range params {
+		paramPath := fmt.Sprintf("%s[%d]", fieldPath, i)
+
+		if param.Name == "" {
+			rootError.AddPartialError(NewValidationError(
+				"查询参数必须有名称",
+				fmt.Sprintf("%s.name", paramPath),
+			))
+		}
+	}
+}
+
+// validatePostData 验证POST数据
+func validatePostData(postData *PostData, fieldPath string, rootError *HarError) {
+	// mimeType是必需字段
+	if postData.MimeType == "" {
+		rootError.AddPartialError(NewValidationError(
+			"PostData必须有mimeType",
+			fmt.Sprintf("%s.mimeType", fieldPath),
+		))
+	}
+
+	// 验证params（如果存在）
+	for i, param := range postData.Params {
+		paramPath := fmt.Sprintf("%s.params[%d]", fieldPath, i)
+
+		if param.Name == "" {
+			rootError.AddPartialError(NewValidationError(
+				"PostData参数必须有名称",
+				fmt.Sprintf("%s.name", paramPath),
+			))
+		}
+	}
+}
+
 // validateTimings 验证时间
 func validateTimings(timings Timings, fieldPath string, rootError *HarError) {
 	// 验证必要的时间字段
@@ -259,6 +385,13 @@ func validateTimings(timings Timings, fieldPath string, rootError *HarError) {
 		rootError.AddPartialError(NewValidationError(
 			"接收时间不能为负",
 			fmt.Sprintf("%s.receive", fieldPath),
+		))
+	}
+
+	if timings.Send < 0 {
+		rootError.AddPartialError(NewValidationError(
+			"发送时间不能为负",
+			fmt.Sprintf("%s.send", fieldPath),
 		))
 	}
 }
@@ -286,13 +419,34 @@ func validatePages(pages []Pages, rootError *HarError) {
 
 		// 验证页面加载时间
 		validatePageTimings(page.PageTimings, fmt.Sprintf("%s.pageTimings", pagePath), rootError)
+
+		// 验证页面标题
+		if page.Title == "" {
+			rootError.AddPartialError(NewValidationError(
+				"页面必须有标题",
+				fmt.Sprintf("%s.title", pagePath),
+			))
+		}
 	}
 }
 
 // validatePageTimings 验证页面加载时间
 func validatePageTimings(timings PageTimings, fieldPath string, rootError *HarError) {
-	// 页面加载时间可以为负，值-1表示不可用
-	// 因此这里不做特殊验证
+	// onContentLoad和onLoad可以为负值（表示不可用）
+	// 但不应为极端值
+	if timings.OnContentLoad < -1 {
+		rootError.AddPartialError(NewValidationError(
+			fmt.Sprintf("页面内容加载时间异常: %f", timings.OnContentLoad),
+			fmt.Sprintf("%s.onContentLoad", fieldPath),
+		))
+	}
+
+	if timings.OnLoad < -1 {
+		rootError.AddPartialError(NewValidationError(
+			fmt.Sprintf("页面加载时间异常: %f", timings.OnLoad),
+			fmt.Sprintf("%s.onLoad", fieldPath),
+		))
+	}
 }
 
 // validateDate 验证日期格式

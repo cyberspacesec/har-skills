@@ -96,6 +96,7 @@ type OptimizedRequest struct {
 	Cookies     []Cookie          // 保持不变
 	Headers     map[string]string // 使用map而不是数组，优化查找
 	QueryString map[string]string // 使用map而不是数组
+	PostData    *PostData         // POST数据
 	HeadersSize *int              // 使用指针允许nil值
 	BodySize    *int              // 使用指针允许nil值
 }
@@ -132,6 +133,7 @@ type OptimizedHar struct {
 	Log struct {
 		Version string             // 版本号通常很短
 		Creator Creator            // 保持不变
+		Browser Browser            // 浏览器信息
 		Pages   []Pages            // 保持不变
 		Entries []OptimizedEntries // 优化的条目数组
 	}
@@ -165,9 +167,8 @@ func ToOptimizedHar(standardHar *Har) *OptimizedHar {
 	optimizedHar := &OptimizedHar{}
 	optimizedHar.Log.Version = standardHar.Log.Version
 	optimizedHar.Log.Creator = standardHar.Log.Creator
+	optimizedHar.Log.Browser = standardHar.Log.Browser
 	optimizedHar.Log.Pages = standardHar.Log.Pages
-
-	// 不需要处理浏览器信息，因为原始HAR结构中没有此字段
 
 	// 转换所有条目
 	optimizedHar.Log.Entries = make([]OptimizedEntries, len(standardHar.Log.Entries))
@@ -193,12 +194,18 @@ func convertToOptimizedEntry(entry Entries) OptimizedEntries {
 		HTTPVersion: entry.Request.HTTPVersion,
 		Cookies:     entry.Request.Cookies,
 		Headers:     make(map[string]string, len(entry.Request.Headers)),
-		QueryString: make(map[string]string),
+		QueryString: make(map[string]string, len(entry.Request.QueryString)),
+		PostData:    entry.Request.PostData,
 	}
 
 	// 转换请求头
 	for _, header := range entry.Request.Headers {
 		optimizedEntry.Request.Headers[header.Name] = header.Value
+	}
+
+	// 转换查询参数
+	for _, qs := range entry.Request.QueryString {
+		optimizedEntry.Request.QueryString[qs.Name] = qs.Value
 	}
 
 	// 设置请求大小
@@ -241,10 +248,24 @@ func convertToOptimizedEntry(entry Entries) OptimizedEntries {
 	}
 
 	// 转换内容
-	if entry.Response.Content.Size != 0 || entry.Response.Content.MimeType != "" {
+	if entry.Response.Content.Size != 0 || entry.Response.Content.MimeType != "" ||
+		entry.Response.Content.Text != "" || entry.Response.Content.Encoding != "" ||
+		entry.Response.Content.Comment != "" {
 		optimizedEntry.Response.Content = &OptimizedContent{
 			Size:     entry.Response.Content.Size,
 			MimeType: entry.Response.Content.MimeType,
+		}
+		if entry.Response.Content.Text != "" {
+			text := entry.Response.Content.Text
+			optimizedEntry.Response.Content.Text = &text
+		}
+		if entry.Response.Content.Encoding != "" {
+			encoding := entry.Response.Content.Encoding
+			optimizedEntry.Response.Content.Encoding = &encoding
+		}
+		if entry.Response.Content.Comment != "" {
+			comment := entry.Response.Content.Comment
+			optimizedEntry.Response.Content.Comment = &comment
 		}
 	}
 
@@ -316,9 +337,8 @@ func (oh *OptimizedHar) ToStandardHar() *Har {
 	standardHar := &Har{}
 	standardHar.Log.Version = oh.Log.Version
 	standardHar.Log.Creator = oh.Log.Creator
+	standardHar.Log.Browser = oh.Log.Browser
 	standardHar.Log.Pages = oh.Log.Pages
-
-	// 不需要处理浏览器信息，因为标准HAR结构中没有此字段
 
 	// 转换所有条目
 	standardHar.Log.Entries = make([]Entries, len(oh.Log.Entries))
@@ -343,11 +363,21 @@ func convertToStandardEntry(entry OptimizedEntries) Entries {
 		HTTPVersion: entry.Request.HTTPVersion,
 		Cookies:     entry.Request.Cookies,
 		Headers:     make([]Headers, 0, len(entry.Request.Headers)),
+		QueryString: make([]QueryString, 0, len(entry.Request.QueryString)),
+		PostData:    entry.Request.PostData,
 	}
 
 	// 转换请求头
 	for name, value := range entry.Request.Headers {
 		standardEntry.Request.Headers = append(standardEntry.Request.Headers, Headers{
+			Name:  name,
+			Value: value,
+		})
+	}
+
+	// 转换查询参数
+	for name, value := range entry.Request.QueryString {
+		standardEntry.Request.QueryString = append(standardEntry.Request.QueryString, QueryString{
 			Name:  name,
 			Value: value,
 		})
@@ -395,6 +425,15 @@ func convertToStandardEntry(entry OptimizedEntries) Entries {
 		standardEntry.Response.Content = Content{
 			Size:     entry.Response.Content.Size,
 			MimeType: entry.Response.Content.MimeType,
+		}
+		if entry.Response.Content.Text != nil {
+			standardEntry.Response.Content.Text = *entry.Response.Content.Text
+		}
+		if entry.Response.Content.Encoding != nil {
+			standardEntry.Response.Content.Encoding = *entry.Response.Content.Encoding
+		}
+		if entry.Response.Content.Comment != nil {
+			standardEntry.Response.Content.Comment = *entry.Response.Content.Comment
 		}
 	}
 

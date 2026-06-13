@@ -14,6 +14,11 @@ func (h *LazyHar) GetCreator() Creator {
 	return h.Log.Creator
 }
 
+// GetBrowser 实现HARProvider接口
+func (h *LazyHar) GetBrowser() Browser {
+	return Browser{}
+}
+
 // GetEntries 实现HARProvider接口
 func (h *LazyHar) GetEntries() []EntryProvider {
 	providers := make([]EntryProvider, len(h.Log.Entries))
@@ -81,6 +86,9 @@ func (e *LazyEntries) ToStandard() Entries {
 		Cache:           e.Cache,
 		Timings:         e.Timings,
 		Pageref:         e.Pageref,
+		ServerIPAddress: e.ServerIPAddress,
+		Connection:      e.Connection,
+		Comment:         e.Comment,
 	}
 }
 
@@ -140,11 +148,19 @@ func (r *LazyResponse) GetHeadersSize() int {
 func (r *LazyResponse) ToStandard() Response {
 	var content Content
 
-	// 创建标准Content对象，只包含Size和MimeType字段
+	// 创建标准Content对象，保留所有字段
 	if r.Content != nil {
 		content = Content{
-			Size:     r.Content.Size,
-			MimeType: r.Content.MimeType,
+			Size:        r.Content.Size,
+			MimeType:    r.Content.MimeType,
+			Compression: r.Content.Compression,
+			Comment:     r.Content.Comment,
+		}
+		if r.Content.Text != nil {
+			content.Text = *r.Content.Text
+		}
+		if r.Content.Encoding != nil {
+			content.Encoding = *r.Content.Encoding
 		}
 	}
 
@@ -190,8 +206,7 @@ func (w *lazyContentWrapper) GetText() string {
 	if w.content == nil {
 		return ""
 	}
-
-	// 尝试加载内容
+	// LazyContent.GetText() returns (*string, error) - defined in lazy.go
 	text, err := w.content.GetText()
 	if err != nil || text == nil {
 		return ""
@@ -213,17 +228,33 @@ func (w *lazyContentWrapper) GetEncoding() string {
 	return *w.content.Encoding
 }
 
+// GetCompression 实现 ContentProvider 接口
+func (w *lazyContentWrapper) GetCompression() int {
+	if w.content == nil {
+		return 0
+	}
+	return w.content.Compression
+}
+
 // ToStandard 实现 ContentProvider 接口
 func (w *lazyContentWrapper) ToStandard() Content {
 	if w.content == nil {
 		return Content{}
 	}
 
-	// 只返回基本Content结构
-	return Content{
-		Size:     w.content.Size,
-		MimeType: w.content.MimeType,
+	content := Content{
+		Size:        w.content.Size,
+		MimeType:    w.content.MimeType,
+		Compression: w.content.Compression,
+		Comment:     w.content.Comment,
 	}
+	if w.content.Text != nil {
+		content.Text = *w.content.Text
+	}
+	if w.content.Encoding != nil {
+		content.Encoding = *w.content.Encoding
+	}
+	return content
 }
 
 // LazyContent 接口实现
@@ -238,11 +269,33 @@ func (c *LazyContent) GetMimeType() string {
 	return c.MimeType
 }
 
+// GetEncoding 实现ContentProvider接口
+func (c *LazyContent) GetEncoding() string {
+	_ = c.Load()
+	if c.Encoding == nil {
+		return ""
+	}
+	return *c.Encoding
+}
+
+// GetCompression 实现ContentProvider接口
+func (c *LazyContent) GetCompression() int {
+	return c.Compression
+}
+
 // ToStandard 实现ContentProvider接口
 func (c *LazyContent) ToStandard() Content {
-	// 返回基本Content对象
-	return Content{
-		Size:     c.Size,
-		MimeType: c.MimeType,
+	content := Content{
+		Size:        c.Size,
+		MimeType:    c.MimeType,
+		Compression: c.Compression,
+		Comment:     c.Comment,
 	}
+	if c.Text != nil {
+		content.Text = *c.Text
+	}
+	if c.Encoding != nil {
+		content.Encoding = *c.Encoding
+	}
+	return content
 }

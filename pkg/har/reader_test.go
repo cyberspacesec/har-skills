@@ -708,7 +708,7 @@ func TestDetectGzipMagicBytes(t *testing.T) {
 	gzPath := filepath.Join(tmpDir, "test.gz")
 	f, _ := os.Create(gzPath)
 	gzWriter := gzip.NewWriter(f)
-	gzWriter.Write([]byte("hello"))
+	_, _ = gzWriter.Write([]byte("hello"))
 	gzWriter.Close()
 	f.Close()
 
@@ -722,7 +722,7 @@ func TestDetectGzipMagicBytes(t *testing.T) {
 
 	// Create a plain text file
 	plainPath := filepath.Join(tmpDir, "test.txt")
-	os.WriteFile(plainPath, []byte("plain text"), 0644)
+	_ = os.WriteFile(plainPath, []byte("plain text"), 0644)
 
 	isGz, err = detectGzipMagicBytes(plainPath)
 	if err != nil {

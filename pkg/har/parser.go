@@ -213,7 +213,7 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 			}
 		}
 	} else {
-		rootError.AddPartialError(NewMissingFieldError("log"))
+		_ = rootError.AddPartialError(NewMissingFieldError("log"))
 	}
 
 	// 如果有错误，并且选项指定收集警告

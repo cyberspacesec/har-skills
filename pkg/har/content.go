@@ -203,7 +203,7 @@ func (c *Content) ParseJSON() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return nil, NewInvalidFormatError("内容数据为空")
 	}
 
@@ -229,7 +229,7 @@ func (c *Content) ParseAsMap() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		return nil, NewInvalidFormatError("内容数据为空")
 	}
 

@@ -43,7 +43,7 @@ func ValidateHarFile(har *Har) error {
 	case HarSpecVersion13:
 		validateHarV13(har, rootError)
 	default:
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			fmt.Sprintf("不支持的HAR版本: %s", har.Log.Version),
 			"log.version",
 		))
@@ -67,21 +67,21 @@ func ValidateHarFile(har *Har) error {
 func validateBasicStructure(har *Har, rootError *HarError) error {
 	// 验证Log字段
 	if har.Log.Version == "" {
-		rootError.AddPartialError(NewMissingFieldError("log.version"))
+		_ = rootError.AddPartialError(NewMissingFieldError("log.version"))
 	}
 
 	// 验证Creator字段
 	if har.Log.Creator.Name == "" {
-		rootError.AddPartialError(NewMissingFieldError("log.creator.name"))
+		_ = rootError.AddPartialError(NewMissingFieldError("log.creator.name"))
 	}
 
 	if har.Log.Creator.Version == "" {
-		rootError.AddPartialError(NewMissingFieldError("log.creator.version"))
+		_ = rootError.AddPartialError(NewMissingFieldError("log.creator.version"))
 	}
 
 	// 验证Browser字段（如果存在）
 	if har.Log.Browser.Name != "" && har.Log.Browser.Version == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"浏览器名称存在但版本为空",
 			"log.browser.version",
 		))
@@ -90,7 +90,7 @@ func validateBasicStructure(har *Har, rootError *HarError) error {
 	// 验证Entries数组
 	// HAR文件可以没有条目，但必须有数组
 	if har.Log.Entries == nil {
-		rootError.AddPartialError(NewMissingFieldError("log.entries"))
+		_ = rootError.AddPartialError(NewMissingFieldError("log.entries"))
 	}
 
 	// 有部分错误时返回
@@ -108,7 +108,7 @@ func validateHarV11(har *Har, rootError *HarError) {
 		if entry.Request.PostData != nil && entry.Request.PostData.Params != nil {
 			for j, param := range entry.Request.PostData.Params {
 				if param.Name == "" {
-					rootError.AddPartialError(NewValidationError(
+					_ = rootError.AddPartialError(NewValidationError(
 						"PostData参数必须有name字段",
 						fmt.Sprintf("log.entries[%d].request.postData.params[%d].name", i, j),
 					))
@@ -124,7 +124,7 @@ func validateHarV12(har *Har, rootError *HarError) {
 	for i, entry := range har.Log.Entries {
 		for j, qs := range entry.Request.QueryString {
 			if qs.Name == "" {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"QueryString参数必须有name字段",
 					fmt.Sprintf("log.entries[%d].request.queryString[%d].name", i, j),
 				))
@@ -134,7 +134,7 @@ func validateHarV12(har *Har, rootError *HarError) {
 		// 验证PostData（如果存在）
 		if entry.Request.PostData != nil {
 			if entry.Request.PostData.MimeType == "" {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"PostData必须有mimeType字段",
 					fmt.Sprintf("log.entries[%d].request.postData.mimeType", i),
 				))
@@ -146,7 +146,7 @@ func validateHarV12(har *Har, rootError *HarError) {
 	for i, entry := range har.Log.Entries {
 		if entry.Response.Content.Encoding != "" &&
 			!strings.EqualFold(entry.Response.Content.Encoding, "base64") {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("Content.encoding只支持base64，当前为: %s", entry.Response.Content.Encoding),
 				fmt.Sprintf("log.entries[%d].response.content.encoding", i),
 			))
@@ -169,7 +169,7 @@ func validateEntries(entries []Entries, rootError *HarError) {
 
 		// 验证必要的时间字段
 		if entry.StartedDateTime.IsZero() {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"条目必须有开始时间",
 				fmt.Sprintf("%s.startedDateTime", entryPrefix),
 			))
@@ -177,7 +177,7 @@ func validateEntries(entries []Entries, rootError *HarError) {
 
 		// 验证时间值
 		if entry.Time < 0 {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"条目时间不能为负",
 				fmt.Sprintf("%s.time", entryPrefix),
 			))
@@ -192,10 +192,6 @@ func validateEntries(entries []Entries, rootError *HarError) {
 		// 验证时间字段
 		validateTimings(entry.Timings, fmt.Sprintf("%s.timings", entryPrefix), rootError)
 
-		// 验证pageref引用的页面是否存在
-		if entry.Pageref != "" {
-			// 页面引用验证可以在这里添加
-		}
 	}
 }
 
@@ -203,7 +199,7 @@ func validateEntries(entries []Entries, rootError *HarError) {
 func validateRequest(req Request, fieldPath string, rootError *HarError) {
 	// 验证方法
 	if req.Method == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"HTTP请求必须有方法",
 			fmt.Sprintf("%s.method", fieldPath),
 		))
@@ -211,7 +207,7 @@ func validateRequest(req Request, fieldPath string, rootError *HarError) {
 
 	// 验证URL
 	if req.URL == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"HTTP请求必须有URL",
 			fmt.Sprintf("%s.url", fieldPath),
 		))
@@ -219,7 +215,7 @@ func validateRequest(req Request, fieldPath string, rootError *HarError) {
 		// 验证URL格式
 		_, err := url.Parse(req.URL)
 		if err != nil {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("无效的URL格式: %s", err.Error()),
 				fmt.Sprintf("%s.url", fieldPath),
 			))
@@ -228,7 +224,7 @@ func validateRequest(req Request, fieldPath string, rootError *HarError) {
 
 	// 验证HTTP版本
 	if req.HTTPVersion == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"HTTP请求必须有版本",
 			fmt.Sprintf("%s.httpVersion", fieldPath),
 		))
@@ -253,7 +249,7 @@ func validateRequest(req Request, fieldPath string, rootError *HarError) {
 func validateResponse(resp Response, fieldPath string, rootError *HarError) {
 	// 验证状态码
 	if resp.Status <= 0 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"HTTP响应必须有有效的状态码",
 			fmt.Sprintf("%s.status", fieldPath),
 		))
@@ -261,7 +257,7 @@ func validateResponse(resp Response, fieldPath string, rootError *HarError) {
 
 	// 验证HTTP版本
 	if resp.HTTPVersion == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"HTTP响应必须有版本",
 			fmt.Sprintf("%s.httpVersion", fieldPath),
 		))
@@ -281,7 +277,7 @@ func validateResponse(resp Response, fieldPath string, rootError *HarError) {
 func validateContent(content Content, fieldPath string, rootError *HarError) {
 	// 验证MIME类型
 	if content.MimeType == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"内容必须有MIME类型",
 			fmt.Sprintf("%s.mimeType", fieldPath),
 		))
@@ -289,7 +285,7 @@ func validateContent(content Content, fieldPath string, rootError *HarError) {
 
 	// 验证size
 	if content.Size < 0 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"内容大小不能为负",
 			fmt.Sprintf("%s.size", fieldPath),
 		))
@@ -298,7 +294,7 @@ func validateContent(content Content, fieldPath string, rootError *HarError) {
 	// 验证encoding（如果存在，必须是已知值）
 	if content.Encoding != "" &&
 		!strings.EqualFold(content.Encoding, "base64") {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			fmt.Sprintf("不支持的Content.encoding: %s（仅支持base64）", content.Encoding),
 			fmt.Sprintf("%s.encoding", fieldPath),
 		))
@@ -311,7 +307,7 @@ func validateHeaders(headers []Headers, fieldPath string, rootError *HarError) {
 		headerPath := fmt.Sprintf("%s[%d]", fieldPath, i)
 
 		if header.Name == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"HTTP头必须有名称",
 				fmt.Sprintf("%s.name", headerPath),
 			))
@@ -325,7 +321,7 @@ func validateCookies(cookies []Cookie, fieldPath string, rootError *HarError) {
 		cookiePath := fmt.Sprintf("%s[%d]", fieldPath, i)
 
 		if cookie.Name == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"Cookie必须有名称",
 				fmt.Sprintf("%s.name", cookiePath),
 			))
@@ -339,7 +335,7 @@ func validateQueryString(params []QueryString, fieldPath string, rootError *HarE
 		paramPath := fmt.Sprintf("%s[%d]", fieldPath, i)
 
 		if param.Name == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"查询参数必须有名称",
 				fmt.Sprintf("%s.name", paramPath),
 			))
@@ -351,7 +347,7 @@ func validateQueryString(params []QueryString, fieldPath string, rootError *HarE
 func validatePostData(postData *PostData, fieldPath string, rootError *HarError) {
 	// mimeType是必需字段
 	if postData.MimeType == "" {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"PostData必须有mimeType",
 			fmt.Sprintf("%s.mimeType", fieldPath),
 		))
@@ -362,7 +358,7 @@ func validatePostData(postData *PostData, fieldPath string, rootError *HarError)
 		paramPath := fmt.Sprintf("%s.params[%d]", fieldPath, i)
 
 		if param.Name == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"PostData参数必须有名称",
 				fmt.Sprintf("%s.name", paramPath),
 			))
@@ -374,21 +370,21 @@ func validatePostData(postData *PostData, fieldPath string, rootError *HarError)
 func validateTimings(timings Timings, fieldPath string, rootError *HarError) {
 	// 验证必要的时间字段
 	if timings.Wait < 0 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"等待时间不能为负",
 			fmt.Sprintf("%s.wait", fieldPath),
 		))
 	}
 
 	if timings.Receive < 0 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"接收时间不能为负",
 			fmt.Sprintf("%s.receive", fieldPath),
 		))
 	}
 
 	if timings.Send < 0 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			"发送时间不能为负",
 			fmt.Sprintf("%s.send", fieldPath),
 		))
@@ -402,7 +398,7 @@ func validatePages(pages []Pages, rootError *HarError) {
 
 		// 验证ID
 		if page.ID == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"页面必须有ID",
 				fmt.Sprintf("%s.id", pagePath),
 			))
@@ -410,7 +406,7 @@ func validatePages(pages []Pages, rootError *HarError) {
 
 		// 验证开始时间
 		if page.StartedDateTime.IsZero() {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"页面必须有开始时间",
 				fmt.Sprintf("%s.startedDateTime", pagePath),
 			))
@@ -421,7 +417,7 @@ func validatePages(pages []Pages, rootError *HarError) {
 
 		// 验证页面标题
 		if page.Title == "" {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				"页面必须有标题",
 				fmt.Sprintf("%s.title", pagePath),
 			))
@@ -434,14 +430,14 @@ func validatePageTimings(timings PageTimings, fieldPath string, rootError *HarEr
 	// onContentLoad和onLoad可以为负值（表示不可用）
 	// 但不应为极端值
 	if timings.OnContentLoad < -1 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			fmt.Sprintf("页面内容加载时间异常: %f", timings.OnContentLoad),
 			fmt.Sprintf("%s.onContentLoad", fieldPath),
 		))
 	}
 
 	if timings.OnLoad < -1 {
-		rootError.AddPartialError(NewValidationError(
+		_ = rootError.AddPartialError(NewValidationError(
 			fmt.Sprintf("页面加载时间异常: %f", timings.OnLoad),
 			fmt.Sprintf("%s.onLoad", fieldPath),
 		))

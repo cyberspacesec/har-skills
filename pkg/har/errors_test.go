@@ -262,8 +262,8 @@ func TestHarError_Error_WithPartialErrors(t *testing.T) {
 	partial1 := NewHarError(ErrCodeValidation, "field A missing", nil)
 	partial2 := NewHarError(ErrCodeValidation, "field B missing", nil)
 	err := NewHarError(ErrCodeUnknown, "multiple issues", nil)
-	err.AddPartialError(partial1)
-	err.AddPartialError(partial2)
+	_ = err.AddPartialError(partial1)
+	_ = err.AddPartialError(partial2)
 
 	got := err.Error()
 	if !contains(got, "field A missing") || !contains(got, "field B missing") {
@@ -309,7 +309,7 @@ func TestHarError_HasPartialErrors_False(t *testing.T) {
 
 func TestHarError_HasPartialErrors_True(t *testing.T) {
 	err := NewHarError(ErrCodeUnknown, "with partials", nil)
-	err.AddPartialError(NewHarError(ErrCodeValidation, "partial1", nil))
+	_ = err.AddPartialError(NewHarError(ErrCodeValidation, "partial1", nil))
 	if !err.HasPartialErrors() {
 		t.Error("expected HasPartialErrors to be true")
 	}
@@ -327,8 +327,8 @@ func TestHarError_GetPartialErrors_WithErrors(t *testing.T) {
 	err := NewHarError(ErrCodeUnknown, "with partials", nil)
 	p1 := NewHarError(ErrCodeValidation, "p1", nil)
 	p2 := NewHarError(ErrCodeMissingField, "p2", nil)
-	err.AddPartialError(p1)
-	err.AddPartialError(p2)
+	_ = err.AddPartialError(p1)
+	_ = err.AddPartialError(p2)
 
 	partials := err.GetPartialErrors()
 	if len(partials) != 2 {
@@ -441,7 +441,8 @@ func TestHarError_WithMetadata(t *testing.T) {
 
 func TestHarError_WithMetadata_MultipleKeys(t *testing.T) {
 	err := NewHarError(ErrCodeUnknown, "msg", nil)
-	err.WithMetadata("k1", "v1").WithMetadata("k2", 42)
+	_ = err.WithMetadata("k1", "v1")
+	_ = err.WithMetadata("k2", 42)
 	if err.Metadata["k1"] != "v1" {
 		t.Errorf("expected k1=v1, got %v", err.Metadata["k1"])
 	}
@@ -519,7 +520,7 @@ func TestHarError_Error_AllComponents(t *testing.T) {
 	partial := NewHarError(ErrCodeMissingField, "missing url", nil).WithField("request")
 	err := NewHarError(ErrCodeFileSystem, "cannot parse", innerErr)
 	err.Field = "log"
-	err.AddPartialError(partial)
+	_ = err.AddPartialError(partial)
 
 	got := err.Error()
 	if !contains(got, "log") {

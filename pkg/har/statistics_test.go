@@ -255,7 +255,7 @@ func TestPercentile(t *testing.T) {
 
 	for _, tt := range tests {
 		result := percentile(tt.values, tt.p)
-		if tt.values == nil || len(tt.values) == 0 {
+		if len(tt.values) == 0 {
 			if result != 0 {
 				t.Errorf("percentile(%v, %d) = %f, expected 0", tt.values, tt.p, result)
 			}

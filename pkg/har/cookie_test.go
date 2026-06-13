@@ -156,6 +156,7 @@ func TestCookieAuditNil(t *testing.T) {
 	report := h.CookieAudit()
 	if report == nil {
 		t.Error("Expected non-nil report for nil HAR")
+		return
 	}
 	if report.TotalCookies != 0 {
 		t.Errorf("Expected 0 total cookies, got %d", report.TotalCookies)

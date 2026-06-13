@@ -435,8 +435,8 @@ func (h *Har) Summary() string {
 	stats := h.Statistics()
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("HAR 文件摘要\n"))
-	sb.WriteString(fmt.Sprintf("=============\n"))
+	sb.WriteString("HAR 文件摘要\n")
+	sb.WriteString("=============\n")
 	sb.WriteString(fmt.Sprintf("版本: %s\n", h.Log.Version))
 	if h.Log.Creator.Name != "" {
 		sb.WriteString(fmt.Sprintf("创建者: %s %s\n", h.Log.Creator.Name, h.Log.Creator.Version))

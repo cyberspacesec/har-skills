@@ -213,8 +213,8 @@ func entryToPythonRequests(entry *Entries) string {
 	}
 
 	sb.WriteString(fmt.Sprintf("response = requests.%s(%s)\n", method, strings.Join(args, ", ")))
-	sb.WriteString(fmt.Sprintf("print(response.status_code)\n"))
-	sb.WriteString(fmt.Sprintf("print(response.text)\n"))
+	sb.WriteString("print(response.status_code)\n")
+	sb.WriteString("print(response.text)\n")
 
 	return sb.String()
 }
@@ -411,7 +411,7 @@ type XMLElement struct {
 	XMLName  xml.Name
 	Attrs    []xml.Attr      `xml:",any,attr,omitempty"`
 	Children []XMLElement    `xml:",any,omitempty"`
-	Content  string          `xml:",chardata,omitempty"`
+	Content  string          `xml:",chardata"`
 }
 
 // HARXML HAR的XML表示

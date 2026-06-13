@@ -202,6 +202,7 @@ func TestCacheAnalysisNil(t *testing.T) {
 	report := h.CacheAnalysis()
 	if report == nil {
 		t.Error("Expected non-nil report for nil HAR")
+		return
 	}
 	if len(report.Assessments) != 0 {
 		t.Errorf("Expected 0 assessments for nil HAR, got %d", len(report.Assessments))

@@ -16,7 +16,7 @@ import (
 func setupTestFiles(t *testing.T) {
 	// 创建测试目录
 	testDataDir := "testdata"
-	os.MkdirAll(testDataDir, 0755)
+	_ = os.MkdirAll(testDataDir, 0755)
 
 	// 有效的HAR文件 - 最小配置
 	minimalHar := Har{

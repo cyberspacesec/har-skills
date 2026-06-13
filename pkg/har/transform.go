@@ -318,9 +318,8 @@ func rebuildURLFromQueryString(entry *Entries) {
 		return
 	}
 
-	q := u.Query()
 	// 清除现有参数，使用QueryString中的值
-	q = url.Values{}
+	q := url.Values{}
 	for _, qs := range entry.Request.QueryString {
 		q.Set(qs.Name, qs.Value)
 	}

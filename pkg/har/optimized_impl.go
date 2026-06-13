@@ -249,9 +249,7 @@ func (r *OptimizedRequest) ToStandard() Request {
 
 	// 转换Cookie
 	request.Cookies = make([]Cookie, len(r.Cookies))
-	for i, cookie := range r.Cookies {
-		request.Cookies[i] = cookie
-	}
+		copy(request.Cookies, r.Cookies)
 
 	// 处理可选字段
 	if r.HeadersSize != nil {
@@ -354,9 +352,7 @@ func (r *OptimizedResponse) ToStandard() Response {
 
 	// 转换Cookie
 	response.Cookies = make([]Cookie, len(r.Cookies))
-	for i, cookie := range r.Cookies {
-		response.Cookies[i] = cookie
-	}
+		copy(response.Cookies, r.Cookies)
 
 	// 处理可选字段
 	if r.HeadersSize != nil {

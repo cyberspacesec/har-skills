@@ -106,7 +106,7 @@ func ValidateWithRules(har *Har) error {
 		// 合并标准错误和自定义错误
 		if harErr, ok := stdErr.(*HarError); ok {
 			for _, ce := range customErrors {
-				harErr.AddPartialError(NewValidationError(
+				_ = harErr.AddPartialError(NewValidationError(
 					fmt.Sprintf("[%s] %s", ce.Rule, ce.Message),
 					ce.Field,
 				))
@@ -121,7 +121,7 @@ func ValidateWithRules(har *Har) error {
 			Message: "HAR验证失败（包含自定义规则）",
 		}
 		for _, ce := range customErrors {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("[%s] %s", ce.Rule, ce.Message),
 				ce.Field,
 			))
@@ -157,7 +157,7 @@ func ValidateStrict(har *Har) error {
 	if err := ValidateHarFile(har); err != nil {
 		if harErr, ok := err.(*HarError); ok {
 			for _, pe := range harErr.GetPartialErrors() {
-				rootError.AddPartialError(pe)
+				_ = rootError.AddPartialError(pe)
 			}
 		}
 	}
@@ -199,7 +199,7 @@ func validatePagerefReferences(har *Har, rootError *HarError) {
 	for i, entry := range har.Log.Entries {
 		if entry.Pageref != "" {
 			if !pageIDs[entry.Pageref] {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					fmt.Sprintf("条目引用的页面ID '%s' 不存在", entry.Pageref),
 					fmt.Sprintf("log.entries[%d].pageref", i),
 				))
@@ -213,7 +213,7 @@ func validatePageIDUniqueness(har *Har, rootError *HarError) {
 	seen := make(map[string]int) // ID -> first occurrence index
 	for i, page := range har.Log.Pages {
 		if prevIdx, exists := seen[page.ID]; exists {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("页面ID '%s' 重复（首次出现在索引%d）", page.ID, prevIdx),
 				fmt.Sprintf("log.pages[%d].id", i),
 			))
@@ -240,7 +240,7 @@ func validateHTTPMethods(har *Har, rootError *HarError) {
 	for i, entry := range har.Log.Entries {
 		method := strings.ToUpper(entry.Request.Method)
 		if !validMethods[method] {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("不常见的HTTP方法: %s（标准方法: GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, CONNECT, TRACE）", entry.Request.Method),
 				fmt.Sprintf("log.entries[%d].request.method", i),
 			))
@@ -253,7 +253,7 @@ func validateStatusCodeRange(har *Har, rootError *HarError) {
 	for i, entry := range har.Log.Entries {
 		status := entry.Response.Status
 		if status < 100 || status > 599 {
-			rootError.AddPartialError(NewValidationError(
+			_ = rootError.AddPartialError(NewValidationError(
 				fmt.Sprintf("无效的HTTP状态码: %d（有效范围: 100-599）", status),
 				fmt.Sprintf("log.entries[%d].response.status", i),
 			))
@@ -274,7 +274,7 @@ func validateCookieSameSite(har *Har, rootError *HarError) {
 		// 检查请求Cookie
 		for j, cookie := range entry.Request.Cookies {
 			if !validSameSite[cookie.SameSite] {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					fmt.Sprintf("Cookie.SameSite值无效: '%s'（有效值: Strict, Lax, None）", cookie.SameSite),
 					fmt.Sprintf("log.entries[%d].request.cookies[%d].sameSite", i, j),
 				))
@@ -284,7 +284,7 @@ func validateCookieSameSite(har *Har, rootError *HarError) {
 		// 检查响应Cookie
 		for j, cookie := range entry.Response.Cookies {
 			if !validSameSite[cookie.SameSite] {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					fmt.Sprintf("Cookie.SameSite值无效: '%s'（有效值: Strict, Lax, None）", cookie.SameSite),
 					fmt.Sprintf("log.entries[%d].response.cookies[%d].sameSite", i, j),
 				))
@@ -304,19 +304,19 @@ func validateCacheFields(har *Har, rootError *HarError) {
 			brPrefix := fmt.Sprintf("%s.cache.beforeRequest", entryPrefix)
 
 			if br.LastAccess.IsZero() {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"BeforeRequest必须有lastAccess字段",
 					fmt.Sprintf("%s.lastAccess", brPrefix),
 				))
 			}
 			if br.ETag == "" {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"BeforeRequest必须有eTag字段",
 					fmt.Sprintf("%s.eTag", brPrefix),
 				))
 			}
 			if br.HitCount < 0 {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"BeforeRequest.hitCount不能为负",
 					fmt.Sprintf("%s.hitCount", brPrefix),
 				))
@@ -329,19 +329,19 @@ func validateCacheFields(har *Har, rootError *HarError) {
 			arPrefix := fmt.Sprintf("%s.cache.afterRequest", entryPrefix)
 
 			if ar.LastAccess.IsZero() {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"AfterRequest必须有lastAccess字段",
 					fmt.Sprintf("%s.lastAccess", arPrefix),
 				))
 			}
 			if ar.ETag == "" {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"AfterRequest必须有eTag字段",
 					fmt.Sprintf("%s.eTag", arPrefix),
 				))
 			}
 			if ar.HitCount < 0 {
-				rootError.AddPartialError(NewValidationError(
+				_ = rootError.AddPartialError(NewValidationError(
 					"AfterRequest.hitCount不能为负",
 					fmt.Sprintf("%s.hitCount", arPrefix),
 				))

@@ -52,7 +52,7 @@ func ParseHarFileWithOptions(harFilePath string, options ParseOptions) (*Har, er
 	if err != nil {
 		harErr, ok := err.(*HarError)
 		if ok {
-			harErr.WithMetadata("filePath", harFilePath)
+			_ = harErr.WithMetadata("filePath", harFilePath)
 		}
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 	if logBytes, ok := rawData["log"]; ok {
 		var logData map[string]json.RawMessage
 		if err := json.Unmarshal(logBytes, &logData); err != nil {
-			rootError.AddPartialError(
+			_ = rootError.AddPartialError(
 				NewJSONParseError("无法解析log字段", err).WithField("log"))
 		} else {
 			// 解析version字段
@@ -154,7 +154,7 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 				if err := json.Unmarshal(versionBytes, &version); err == nil {
 					har.Log.Version = version
 				} else {
-					rootError.AddPartialError(
+					_ = rootError.AddPartialError(
 						NewJSONParseError("无法解析version字段", err).WithField("log.version"))
 				}
 			}
@@ -165,7 +165,7 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 				if err := json.Unmarshal(creatorBytes, &creator); err == nil {
 					har.Log.Creator = creator
 				} else {
-					rootError.AddPartialError(
+					_ = rootError.AddPartialError(
 						NewJSONParseError("无法解析creator字段", err).WithField("log.creator"))
 				}
 			}
@@ -179,14 +179,14 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 						if err := json.Unmarshal(pageBytes, &page); err == nil {
 							har.Log.Pages = append(har.Log.Pages, page)
 						} else {
-							rootError.AddPartialError(
+							_ = rootError.AddPartialError(
 								NewJSONParseError(
 									fmt.Sprintf("无法解析第%d个page", i+1), err).
 									WithField(fmt.Sprintf("log.pages[%d]", i)))
 						}
 					}
 				} else {
-					rootError.AddPartialError(
+					_ = rootError.AddPartialError(
 						NewJSONParseError("无法解析pages字段", err).WithField("log.pages"))
 				}
 			}
@@ -200,14 +200,14 @@ func parseLenient(harFileBytes []byte, options ParseOptions) (*Har, error) {
 						if err := json.Unmarshal(entryBytes, &entry); err == nil {
 							har.Log.Entries = append(har.Log.Entries, entry)
 						} else {
-							rootError.AddPartialError(
+							_ = rootError.AddPartialError(
 								NewJSONParseError(
 									fmt.Sprintf("无法解析第%d个entry", i+1), err).
 									WithField(fmt.Sprintf("log.entries[%d]", i)))
 						}
 					}
 				} else {
-					rootError.AddPartialError(
+					_ = rootError.AddPartialError(
 						NewJSONParseError("无法解析entries字段", err).WithField("log.entries"))
 				}
 			}

@@ -95,7 +95,7 @@ func ParseFile(harFilePath string, opts ...Option) (HARProvider, error) {
 	if err != nil {
 		// 添加文件路径到错误上下文
 		if harErr, ok := err.(*HarError); ok {
-			harErr.WithMetadata("filePath", harFilePath)
+			_ = harErr.WithMetadata("filePath", harFilePath)
 		}
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package har
 
 import (
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -207,11 +206,3 @@ func detectGzipMagicBytes(filePath string) (bool, error) {
 	return n >= 2 && buf[0] == 0x1f && buf[1] == 0x8b, nil
 }
 
-// unmarshalHarFromBytes is a helper to unmarshal HAR bytes with error wrapping.
-func unmarshalHarFromBytes(data []byte) (*Har, error) {
-	har := new(Har)
-	if err := json.Unmarshal(data, har); err != nil {
-		return nil, WrapJSONUnmarshalError(err)
-	}
-	return har, nil
-}

@@ -485,29 +485,6 @@ func convertToStandardEntry(entry OptimizedEntries) Entries {
 	return standardEntry
 }
 
-// 计算请求头大小
-func calculateRequestHeaderSize(req OptimizedRequest) int {
-	size := len(req.Method.String()) + len(req.URL) + len(req.HTTPVersion) + 4 // 加上空格和CRLF
-
-	// 计算每个头的大小
-	for name, value := range req.Headers {
-		size += len(name) + len(value) + 4 // name: value\r\n
-	}
-
-	return size
-}
-
-// 计算响应头大小
-func calculateResponseHeaderSize(resp OptimizedResponse) int {
-	size := len(resp.HTTPVersion) + len(resp.StatusText) + 10 // HTTP/x.x 200 OK\r\n
-
-	// 计算每个头的大小
-	for name, value := range resp.Headers {
-		size += len(name) + len(value) + 4 // name: value\r\n
-	}
-
-	return size
-}
 
 // SearchByURL 按URL搜索条目
 func (oh *OptimizedHar) SearchByURL(urlPattern string) []OptimizedEntries {

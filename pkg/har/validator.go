@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // HAR规范版本常量
@@ -449,17 +448,6 @@ func validatePageTimings(timings PageTimings, fieldPath string, rootError *HarEr
 	}
 }
 
-// validateDate 验证日期格式
-func validateDate(date time.Time, fieldPath string, rootError *HarError) bool {
-	if date.IsZero() {
-		rootError.AddPartialError(NewValidationError(
-			"日期不能为空",
-			fieldPath,
-		))
-		return false
-	}
-	return true
-}
 
 // IsValidHarVersion 检查是否为支持的HAR版本
 func IsValidHarVersion(version string) bool {

@@ -38,10 +38,6 @@ var listCmd = &cobra.Command{
 		if status > 0 {
 			opts = append(opts, har.WithFilterStatusCode(status))
 		}
-		if domain != "" {
-			// FindByDomain不在FilterOption中，使用FilterWith后手动过滤
-			// 先使用FilterWith获取基础结果，然后按域名过滤
-		}
 
 		var result *har.FilterResult
 		if len(opts) > 0 {

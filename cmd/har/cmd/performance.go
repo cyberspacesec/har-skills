@@ -85,7 +85,7 @@ func formatPerformanceReport(report *har.PerformanceReport) string {
 
 	// 优化建议
 	if len(report.Recommendations) > 0 {
-		sb.WriteString(fmt.Sprintf("\n优化建议:\n"))
+		sb.WriteString("\n优化建议:\n")
 		sb.WriteString(strings.Repeat("-", 60) + "\n")
 		for i, rec := range report.Recommendations {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, rec))

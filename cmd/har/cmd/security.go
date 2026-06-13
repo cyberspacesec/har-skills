@@ -95,8 +95,8 @@ func filterFindingsBySeverity(findings []har.SecurityFinding, minSeverity string
 func formatSecurityReport(report *har.SecurityReport, severity string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("安全审计报告\n"))
-	sb.WriteString(fmt.Sprintf("============\n"))
+	sb.WriteString("安全审计报告\n")
+	sb.WriteString("============\n")
 	sb.WriteString(fmt.Sprintf("评分: %d/100\n", report.Score))
 	sb.WriteString(fmt.Sprintf("发现: %d 个问题\n\n", len(report.Findings)))
 

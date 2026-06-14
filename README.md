@@ -6,117 +6,68 @@
 [![Release](https://img.shields.io/github/v/release/cyberspacesec/har-skills)](https://github.com/cyberspacesec/har-skills/releases/latest)
 [![CI](https://github.com/cyberspacesec/har-skills/actions/workflows/release.yml/badge.svg)](https://github.com/cyberspacesec/har-skills/actions)
 
-**HAR Skills** is an **AI-native** Go SDK and CLI for HAR (HTTP Archive) files. It wraps the complete HAR lifecycle — parsing, analysis, security audit, performance scoring, data redaction, request transformation, diff, merge/split, export — into **23 CLI commands** and **70+ SDK methods**, with progressive-disclosure documentation designed for direct AI agent consumption.
+**HAR Skills** is an **AI-native** library for HAR (HTTP Archive) file analysis. It wraps the complete HAR lifecycle — parsing, analysis, security audit, performance scoring, data redaction, request transformation, diff, merge/split, export — into **23 CLI commands** and **70+ SDK methods**.
 
-🤖 **AI Agents**: Read [CLAUDE.md](./CLAUDE.md) for the full progressive-disclosure Skill document.
+## Access Methods
 
----
+HAR Skills can be accessed in **4 ways** — Skills first:
 
-## Features
+| Method | Best For | Quick Start |
+|--------|----------|-------------|
+| 🤖 **Skills** | AI agents (Claude, GPT, etc.) | Read [CLAUDE.md](./CLAUDE.md) |
+| 📦 **Go SDK** | Go applications | `go get github.com/cyberspacesec/har-skills` |
+| 🖥️ **CLI** | Terminal / scripts | `go install github.com/cyberspacesec/har-skills/cmd/har@latest` |
+| 🔌 **MCP** | MCP-compatible AI tools | *(coming soon)* |
 
-- **23 CLI Commands**: info, list, find, headers, timing, extract, diff, merge, split, validate, redact, transform, export, security, cookie, cache, performance, waterfall, dedup, replay, index, domains, content, connections
-- **70+ SDK Methods**: Full HAR lifecycle coverage
-- **Multiple Parse Strategies**: Standard, memory-optimized, lazy-loading, streaming
-- **Security Audit**: Header checks, cookie safety, mixed content, CORS, info leakage
-- **Performance Scoring**: Lighthouse-style 6-dimension scoring (A/B/C/D grades)
-- **Data Redaction**: Auto-strip passwords, tokens, API keys, IP addresses
-- **Multi-format Export**: cURL, Wget, Python requests, Postman Collection, XML, YAML
-- **Progressive Disclosure**: 5-level Skill docs consumable by AI agents
+### 1. 🤖 Skills (AI Agent)
 
-## Installation
+HAR Skills ships with a **progressive-disclosure Skill document** ([CLAUDE.md](./CLAUDE.md)) designed for direct AI agent consumption. AI agents can:
 
-### Pre-built Binaries (Recommended)
+- Download a pre-built binary and use CLI commands
+- Clone source and compile
+- Call SDK methods programmatically
 
-Download from [GitHub Releases](https://github.com/cyberspacesec/har-skills/releases/latest):
+**One-click Skill prompt** — copy and paste into any AI agent:
 
-| Platform | Arch | File |
-|----------|------|------|
-| **Linux** | x86_64 | `har-skills_*_linux_x86_64.tar.gz` |
-| **Linux** | arm64 | `har-skills_*_linux_arm64.tar.gz` |
-| **Linux** | armv6 | `har-skills_*_linux_armv6.tar.gz` |
-| **Linux** | armv7 | `har-skills_*_linux_armv7.tar.gz` |
-| **Linux** | i386 | `har-skills_*_linux_i386.tar.gz` |
-| **macOS** | Intel | `har-skills_*_darwin_x86_64.tar.gz` |
-| **macOS** | Apple Silicon | `har-skills_*_darwin_arm64.tar.gz` |
-| **Windows** | x86_64 | `har-skills_*_windows_x86_64.zip` |
-| **Windows** | i386 | `har-skills_*_windows_i386.zip` |
-| **FreeBSD** | x86_64 | `har-skills_*_freebsd_x86_64.tar.gz` |
-| **FreeBSD** | i386 | `har-skills_*_freebsd_i386.tar.gz` |
+```
+You have access to the HAR Skills tool for HAR (HTTP Archive) file analysis.
 
-```bash
-# Linux/macOS example
-curl -sL https://github.com/cyberspacesec/har-skills/releases/latest/download/har-skills_0.1.0_linux_x86_64.tar.gz | tar xz
-sudo mv har /usr/local/bin/
+Install: go install github.com/cyberspacesec/har-skills/cmd/har@latest
+Or download binary: https://github.com/cyberspacesec/har-skills/releases/latest
+Or build from source: git clone https://github.com/cyberspacesec/har-skills.git && cd har-skills && go build -o har ./cmd/har/
 
-# Verify
-har --version
+Usage: har -f <file> <command>
+
+Commands:
+  info              File overview & statistics
+  list              List entries with filters
+  find <pattern>    Search entries (20+ filter flags)
+  security          Security audit (headers, cookies, CORS, mixed content)
+  performance       Performance scoring (A/B/C/D grade)
+  export <format>   Export to curl/wget/python/postman/xml/yaml/json/csv/markdown/html/jsonl
+  redact            Redact sensitive data (passwords, tokens, IPs)
+  diff <f1> <f2>    Compare two HAR files
+  merge <f1> <f2>   Merge HAR files
+  split             Split HAR by domain/page/time/size/status/method
+  validate          Validate HAR spec compliance
+  replay            Replay HTTP requests
+  index             Build & query entry index
+  domains           Per-domain statistics
+  content           Content type & size analysis
+  connections       Connection reuse analysis
+  cookie            Cookie security audit
+  cache             Cache analysis
+  waterfall         Waterfall timeline
+  timing            Timing breakdown
+  headers           View request/response headers
+  extract           Extract response content
+  dedup             Find/remove duplicates
+  transform         Transform URLs, headers, schemes
+
+Full docs: https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md
 ```
 
-### Build from Source
-
-```bash
-# Clone
-git clone https://github.com/cyberspacesec/har-skills.git
-cd har-skills
-
-# Build
-go build -o har ./cmd/har/
-
-# Install globally
-go install ./cmd/har/
-
-# Or with version info
-go build -ldflags "-X github.com/cyberspacesec/har-skills/cmd/har/cmd.version=$(git describe --tags)" -o har ./cmd/har/
-```
-
-### Go Install
-
-```bash
-go install github.com/cyberspacesec/har-skills/cmd/har@latest
-```
-
-### Go Module (SDK Only)
-
-```bash
-go get github.com/cyberspacesec/har-skills
-```
-
-## Quick Start
-
-### CLI
-
-```bash
-# Overview
-har -f capture.har info
-
-# List entries
-har -f capture.har list --limit 20
-
-# Search entries
-har -f capture.har find "api/users"
-har -f capture.har find --errors          # All error requests
-har -f capture.har find --slow 1000       # Slower than 1s
-
-# Security audit
-har -f capture.har security
-
-# Performance scoring
-har -f capture.har performance
-
-# Data redaction
-har -f capture.har redact -o clean.har
-
-# Export to cURL
-har -f capture.har export curl
-
-# Diff two HAR files
-har diff v1.har v2.har
-
-# All commands
-har --help
-```
-
-### SDK
+### 2. 📦 Go SDK
 
 ```go
 package main
@@ -153,63 +104,79 @@ func main() {
 }
 ```
 
-## AI Integration
+### 3. 🖥️ CLI
 
-HAR Skills is designed as an **AI-native** library. AI agents can use it in two ways:
+#### Installation
 
-### Option 1: Download Pre-built Binary
+**Pre-built binary (Recommended)**
 
-```
-Download the latest release binary for the current platform from:
-https://github.com/cyberspacesec/har-skills/releases/latest
+Download from [GitHub Releases](https://github.com/cyberspacesec/har-skills/releases/latest):
 
-Then use the CLI commands documented in CLAUDE.md to analyze HAR files.
-```
+| Platform | Arch | File |
+|----------|------|------|
+| **Linux** | x86_64 | `har-skills_*_linux_x86_64.tar.gz` |
+| **Linux** | arm64 | `har-skills_*_linux_arm64.tar.gz` |
+| **Linux** | armv6/v7/i386 | `har-skills_*_linux_*.tar.gz` |
+| **macOS** | Intel | `har-skills_*_darwin_x86_64.tar.gz` |
+| **macOS** | Apple Silicon | `har-skills_*_darwin_arm64.tar.gz` |
+| **Windows** | x86_64/i386 | `har-skills_*_windows_*.zip` |
+| **FreeBSD** | x86_64/i386 | `har-skills_*_freebsd_*.tar.gz` |
 
-### Option 2: Build from Source
-
-```
-1. git clone https://github.com/cyberspacesec/har-skills.git
-2. cd har-skills && go build -o har ./cmd/har/
-3. Use the har binary as documented in CLAUDE.md
-```
-
-### Option 3: Use as Go SDK
-
-```go
-import har "github.com/cyberspacesec/har-skills"
+```bash
+# Linux x86_64 example
+curl -sL https://github.com/cyberspacesec/har-skills/releases/latest/download/har-skills_0.1.0_linux_x86_64.tar.gz | tar xz
+sudo mv har /usr/local/bin/
+har --version
 ```
 
-### One-Click AI Agent Prompt
+**Build from source**
 
-Copy this prompt to give an AI agent full HAR analysis capability:
-
+```bash
+git clone https://github.com/cyberspacesec/har-skills.git
+cd har-skills
+go build -ldflags "-X github.com/cyberspacesec/har-skills/cmd/har/cmd.version=$(git describe --tags 2>/dev/null || echo dev)" -o har ./cmd/har/
 ```
-You have access to the HAR Skills CLI tool for analyzing HAR (HTTP Archive) files.
 
-Install: go install github.com/cyberspacesec/har-skills/cmd/har@latest
-Or download: https://github.com/cyberspacesec/har-skills/releases/latest
+**Go Install**
 
-Commands: har -f <file> <command>
-  info          — File overview
-  list          — List entries
-  find <query>  — Search entries (supports 20+ filter flags)
-  security      — Security audit
-  performance   — Performance scoring
-  export <fmt>  — Export (curl/wget/python/postman/xml/yaml/json/csv/markdown/html)
-  redact        — Redact sensitive data
-  diff <f1> <f2> — Compare files
-  merge <f1> <f2> — Merge files
-  validate      — Validate HAR spec
-  replay        — Replay HTTP requests
-  index         — Build & query entry index
-  domains       — Per-domain statistics
-  content       — Content type analysis
-  connections   — Connection reuse analysis
-  --help        — All commands & flags
-
-Skill docs: https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md
+```bash
+go install github.com/cyberspacesec/har-skills/cmd/har@latest
 ```
+
+#### CLI Usage
+
+```bash
+har -f capture.har info                              # Overview
+har -f capture.har list --limit 20                   # List entries
+har -f capture.har find "api/users"                  # Search
+har -f capture.har find --errors                     # Error requests
+har -f capture.har find --slow 1000                  # Slow requests
+har -f capture.har find --response-header "X-Debug"  # By response header
+har -f capture.har find --cookie "session_id"        # By cookie name
+har -f capture.har security                          # Security audit
+har -f capture.har performance                       # Performance score
+har -f capture.har redact -o clean.har               # Redact sensitive data
+har -f capture.har export curl                       # Export as cURL
+har -f capture.har export csv -o data.csv            # Export as CSV
+har diff v1.har v2.har                               # Compare files
+har merge a.har b.har -o merged.har                  # Merge files
+har --help                                           # All commands
+```
+
+### 4. 🔌 MCP
+
+MCP (Model Context Protocol) integration is coming soon. It will allow MCP-compatible AI tools to use HAR Skills as a tool server.
+
+## Features
+
+- **23 CLI Commands**: Full HAR lifecycle coverage
+- **70+ SDK Methods**: Parsing, analysis, transformation, export
+- **Multiple Parse Strategies**: Standard, memory-optimized, lazy-loading, streaming
+- **Security Audit**: Header checks, cookie safety, mixed content, CORS, info leakage
+- **Performance Scoring**: Lighthouse-style 6-dimension scoring (A/B/C/D grades)
+- **Data Redaction**: Auto-strip passwords, tokens, API keys, IP addresses
+- **Multi-format Export**: cURL, Wget, Python, Postman, CSV, Markdown, HTML, JSON, YAML, XML, JSONL
+- **Progressive Disclosure**: 5-level Skill docs in [CLAUDE.md](./CLAUDE.md)
 
 ## Command Reference
 
@@ -217,24 +184,23 @@ Skill docs: https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md
 |---------|-------------|---------|-------------|
 | `info` | File overview | `validate` | HAR spec validation |
 | `list` | List entries | `redact` | Redact sensitive data |
-| `find` | Search entries | `transform` | Transform requests |
-| `headers` | View headers | `export` | Multi-format export |
-| `timing` | Timing analysis | `security` | Security audit |
+| `find` | Search entries (20+ filters) | `transform` | Transform requests |
+| `headers` | View headers | `export` | 12-format export |
+| `timing` | Timing breakdown | `security` | Security audit |
 | `extract` | Extract content | `cookie` | Cookie analysis |
 | `diff` | Compare files | `cache` | Cache analysis |
 | `merge` | Merge files | `performance` | Performance scoring |
-| `split` | Split files | `waterfall` | Waterfall view |
+| `split` | Split files | `waterfall` | Waterfall timeline |
 | `index` | Build & query index | `dedup` | Remove duplicates |
 | `domains` | Domain statistics | `replay` | HTTP replay |
 | `content` | Content analysis | `connections` | Connection reuse |
 
 ## Project Structure
 
-- `pkg/har/` — SDK core (40 modules, 741 tests)
-- `cmd/har/` — CLI commands (20 Cobra commands)
-- `CLAUDE.md` — AI Agent Skill progressive-disclosure docs
+- `pkg/har/` — Go SDK core (40 modules, 741 tests)
+- `cmd/har/` — CLI (23 Cobra commands)
+- `CLAUDE.md` — AI Agent Skill progressive-disclosure document
 - `examples/` — Example code
-- `doc/` — Detailed documentation
 
 ## Contributing
 
@@ -248,28 +214,62 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 ## 简体中文
 
-**HAR Skills** 是一个 **AI 原生** 的 Go SDK 和命令行工具，用于 HAR（HTTP Archive）文件分析。它将 HAR 文件的解析、分析、安全审计、性能评分、数据脱敏、请求转换、差异比较、合并拆分、导出等全部能力封装为 **23 个 CLI 命令** 和 **70+ SDK 方法**，并附带渐进式披露文档，可直接作为 AI Agent 的 Skill 使用。
+**HAR Skills** 是一个 **AI 原生** 的 HAR（HTTP Archive）文件分析库，支持 **4 种接入方式**：
 
-🤖 **AI Agent 接入**：阅读 [CLAUDE.md](./CLAUDE.md) 获取渐进式披露的完整 Skill 文档。
+| 接入方式 | 适用场景 | 快速开始 |
+|----------|----------|----------|
+| 🤖 **Skills** | AI Agent（Claude、GPT 等） | 阅读 [CLAUDE.md](./CLAUDE.md) |
+| 📦 **Go SDK** | Go 应用程序 | `go get github.com/cyberspacesec/har-skills` |
+| 🖥️ **CLI** | 终端 / 脚本 | `go install github.com/cyberspacesec/har-skills/cmd/har@latest` |
+| 🔌 **MCP** | MCP 兼容的 AI 工具 | *（即将推出）* |
 
-### 安装
+### 🤖 Skills 接入（AI Agent 一键复制）
 
-```bash
-# 从 Release 下载（推荐）
-# https://github.com/cyberspacesec/har-skills/releases/latest
+将以下提示词复制给 AI Agent，即可获得完整的 HAR 分析能力：
 
-# 从源码编译
-git clone https://github.com/cyberspacesec/har-skills.git
-cd har-skills && go build -o har ./cmd/har/
+```
+你可以使用 HAR Skills 工具来分析 HAR（HTTP Archive）文件。
 
-# Go Install
-go install github.com/cyberspacesec/har-skills/cmd/har@latest
+安装方式：go install github.com/cyberspacesec/har-skills/cmd/har@latest
+下载地址：https://github.com/cyberspacesec/har-skills/releases/latest
+源码编译：git clone https://github.com/cyberspacesec/har-skills.git && cd har-skills && go build -o har ./cmd/har/
 
-# Go Module（仅 SDK）
-go get github.com/cyberspacesec/har-skills
+使用：har -f <文件> <命令>
+
+命令：
+  info              文件概要和统计
+  list              列出条目
+  find <pattern>    搜索条目（支持 20+ 过滤参数）
+  security          安全审计
+  performance       性能评分
+  export <format>   导出为 curl/wget/python/postman/xml/yaml/json/csv/markdown/html/jsonl
+  redact            数据脱敏
+  diff <f1> <f2>    比较两个 HAR 文件
+  merge             合并 HAR 文件
+  split             拆分 HAR 文件
+  validate          验证 HAR 规范
+  replay            重放 HTTP 请求
+  index             构建索引并查询
+  domains           按域名统计
+  content           内容类型分析
+  connections       连接复用分析
+  --help            查看所有命令
+
+完整文档：https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md
 ```
 
-### CLI 使用
+### 📦 Go SDK
+
+```go
+import har "github.com/cyberspacesec/har-skills"
+
+h, _ := har.ParseHarFile("capture.har")
+stats := h.Statistics()       // 统计信息
+report := h.SecurityAudit()   // 安全审计
+perf := h.PerformanceScore()  // 性能评分
+```
+
+### 🖥️ CLI
 
 ```bash
 har -f capture.har info          # 概要
@@ -278,37 +278,4 @@ har -f capture.har performance   # 性能评分
 har -f capture.har redact -o clean.har  # 数据脱敏
 har -f capture.har export curl   # 导出 cURL
 har diff v1.har v2.har           # 比较
-```
-
-### SDK 使用
-
-```go
-import har "github.com/cyberspacesec/har-skills"
-
-h, _ := har.ParseHarFile("capture.har")
-stats := h.Statistics()       // 统计
-report := h.SecurityAudit()   // 安全审计
-perf := h.PerformanceScore()  // 性能评分
-```
-
-### AI 一键接入
-
-复制以下提示词给 AI Agent，即可获得完整的 HAR 分析能力：
-
-```
-你可以使用 HAR Skills CLI 工具来分析 HAR 文件。
-
-安装方式：go install github.com/cyberspacesec/har-skills/cmd/har@latest
-下载地址：https://github.com/cyberspacesec/har-skills/releases/latest
-
-使用：har -f <文件> <命令>
-  info       — 文件概要
-  security   — 安全审计
-  performance — 性能评分
-  export     — 多格式导出
-  redact     — 数据脱敏
-  diff       — 文件比较
-  --help     — 查看所有命令
-
-Skill 文档：https://github.com/cyberspacesec/har-skills/blob/main/CLAUDE.md
 ```

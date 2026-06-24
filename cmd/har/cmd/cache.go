@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 // cacheCmd 分析HAR文件中的缓存头部

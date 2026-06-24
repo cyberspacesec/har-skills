@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 // replayCmd 重放HAR文件中的HTTP请求
@@ -201,9 +201,9 @@ func replayEntries(entries []har.Entries, opts har.ReplayOptions) ([]replayResul
 	for i, entry := range entries {
 		result, err := entry.Replay(opts)
 		info := replayResultInfo{
-			Index:   i,
-			Method:  entry.Request.Method,
-			URL:     entry.Request.URL,
+			Index:    i,
+			Method:   entry.Request.Method,
+			URL:      entry.Request.URL,
 			Duration: result.Duration.String(),
 		}
 

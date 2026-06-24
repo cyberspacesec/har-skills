@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 // extractCmd 提取响应内容

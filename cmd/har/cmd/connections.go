@@ -6,8 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/spf13/cobra"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 var connectionsCmd = &cobra.Command{

@@ -5,9 +5,9 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 var domainsCmd = &cobra.Command{

@@ -197,7 +197,7 @@ MCP (Model Context Protocol) integration is coming soon. It will allow MCP-compa
 
 ## Project Structure
 
-- `pkg/har/` — Go SDK core (40 modules, 741 tests)
+- Root package — Go SDK core (40 modules, 741 tests)
 - `cmd/har/` — CLI (23 Cobra commands)
 - `CLAUDE.md` — AI Agent Skill progressive-disclosure document
 - `examples/` — Example code

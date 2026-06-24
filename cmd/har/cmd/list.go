@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 // listCmd 列出HAR条目
@@ -102,12 +102,12 @@ func init() {
 
 // listEntry 简化的条目对象用于JSON输出
 type listEntry struct {
-	Index   int    `json:"index"`
-	Method  string `json:"method"`
-	Status  int    `json:"status"`
-	Size    int    `json:"size"`
-	Time    float64 `json:"time"`
-	URL     string `json:"url"`
+	Index  int     `json:"index"`
+	Method string  `json:"method"`
+	Status int     `json:"status"`
+	Size   int     `json:"size"`
+	Time   float64 `json:"time"`
+	URL    string  `json:"url"`
 }
 
 // buildListJSON 构建JSON输出数据

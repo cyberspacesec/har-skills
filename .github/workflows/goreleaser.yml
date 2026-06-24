@@ -24,7 +24,7 @@ jobs:
           go-version: "1.22"
 
       - name: Run tests
-        run: go test ./pkg/har/ -race -count=1 -timeout 120s
+        run: go test . -race -count=1 -timeout 120s
 
   goreleaser:
     name: GoReleaser

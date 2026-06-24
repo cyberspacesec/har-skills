@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
+	"github.com/spf13/cobra"
 )
 
 // LoadHar 从 --file 标志或 stdin 加载 HAR 文件

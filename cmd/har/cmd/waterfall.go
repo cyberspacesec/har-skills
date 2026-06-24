@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	har "github.com/cyberspacesec/har-skills"
 	"github.com/cyberspacesec/har-skills/cmd/har/internal"
+	"github.com/spf13/cobra"
 )
 
 // waterfallCmd 生成瀑布流时间线分析

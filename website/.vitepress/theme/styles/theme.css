@@ -1,0 +1,286 @@
+/* HAR Skills 文档站设计系统
+ * 视觉概念：网络流量分析的工具气质 —— 等宽字体呼应 HAR 是 JSON 文本，
+ * 深海军蓝主背景（非纯黑），能力树六色作为分类语义色，避开奶油底/报纸栏等默认模板。
+ */
+
+:root {
+  /* 语义色 —— 与能力树 SVG 一致的六色分类 */
+  --har-ink: #0b1220;
+  --har-paper: #f7f9fc;
+  --har-blue: #2563eb;   /* Agent Access */
+  --har-cyan: #0891b2;   /* Ingest & Parse */
+  --har-green: #16a34a;  /* Inspect & Search */
+  --har-violet: #9333ea; /* Analyze */
+  --har-amber: #ea580c;  /* Operate — 强调/CTA */
+  --har-slate: #475569;  /* Compare & Export */
+  --har-line: #e2e8f0;
+  --har-muted: #64748b;
+
+  /* VitePress 主题变量覆盖 */
+  --vp-c-brand-1: #2563eb;
+  --vp-c-brand-2: #1d4ed8;
+  --vp-c-brand-3: #1e40af;
+  --vp-c-brand-light: #3b82f6;
+
+  --vp-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --vp-button-brand-bg: #2563eb;
+  --vp-button-brand-hover-bg: #1d4ed8;
+
+  /* 字号系统 */
+  --har-step-0: 0.75rem;
+  --har-step-1: 0.875rem;
+  --har-step-2: 1rem;
+  --har-step-3: 1.25rem;
+  --har-step-4: 1.5rem;
+  --har-step-5: 2rem;
+  --har-step-6: 2.75rem;
+  --har-step-7: 3.5rem;
+}
+
+.dark {
+  --har-paper: #0b1220;
+  --har-ink: #f7f9fc;
+  --har-line: #1e293b;
+  --har-muted: #94a3b8;
+
+  --vp-c-brand-1: #3b82f6;
+  --vp-c-brand-2: #2563eb;
+  --vp-c-brand-3: #1d4ed8;
+
+  --vp-bg: #0b1220;
+  --vp-home-hero-name-color: transparent;
+}
+
+/* 全局排版 —— 等宽字体用于标题与代码，正文用 Inter */
+.vp-doc h1, .vp-doc h2, .vp-doc h3,
+.VPNavBar .title, .VPNavBar .VPNavBarTitle .title {
+  font-family: var(--vp-font-family-mono);
+  letter-spacing: -0.02em;
+}
+
+body {
+  font-family: var(--vp-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 代码块 —— 终端气质，深底浅字 */
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+  border: 1px solid var(--har-line);
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--har-step-1);
+}
+
+.vp-doc :not(pre) > code {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.85em;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--vp-c-brand-1);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+/* 表格 —— 容器约束宽度，等宽表头 */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  overflow: auto;
+  font-size: var(--har-step-1);
+}
+
+.vp-doc table th {
+  font-family: var(--vp-font-family-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--har-step-0);
+  letter-spacing: 0.04em;
+  color: var(--har-muted);
+}
+
+/* 自定义容器 —— 与品牌色协调 */
+.vp-doc .vp-doc-container,
+.custom-block {
+  border-radius: 8px;
+}
+
+/* 首页容器 */
+.VPHome {
+  padding-bottom: 4rem;
+}
+
+/* 通用 section 包装 */
+.har-section {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 1rem;
+}
+
+.har-section__eyebrow {
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--har-step-0);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--har-amber);
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.har-section__title {
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--har-step-5);
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.har-section__lede {
+  font-size: var(--har-step-3);
+  color: var(--har-muted);
+  max-width: 60ch;
+  margin: 0 0 2.5rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .har-section { padding: 2.5rem 1.25rem 1rem; }
+  .har-section__title { font-size: var(--har-step-4); }
+  .har-section__lede { font-size: var(--har-step-2); }
+}
+
+/* prefers-reduced-motion 守护 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mermaid 容器与骨架屏 ──────────────────────────────────────
+   目标：消除 mermaid 客户端懒渲染导致的首屏空白。
+   构建时每个 mermaid 块输出 <div class="mermaid-host"> 内含骨架屏；
+   客户端 mermaid.render 完成后，.mermaid-rendered 隐藏骨架、显示真 SVG。
+   整体外观与代码块一致：圆角边框、等宽字体、深底浅字。
+   ─────────────────────────────────────────────────────────── */
+.mermaid-host {
+  margin: 1.5rem 0;
+  border: 1px solid var(--har-line);
+  border-radius: 8px;
+  background: var(--vp-code-bg, rgba(0, 0, 0, 0.02));
+  overflow: hidden;
+  position: relative;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease;
+}
+
+.mermaid-host.mermaid-rendered {
+  border-color: var(--har-blue);
+  background: transparent;
+}
+
+.mermaid-host.mermaid-error {
+  border-color: var(--har-amber);
+}
+
+/* 骨架屏：首屏占位，不是空白 */
+.mermaid-skeleton {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(37, 99, 235, 0.06) 50%,
+      transparent 100%);
+  background-size: 200% 100%;
+  animation: mermaid-shimmer 1.6s ease-in-out infinite;
+}
+
+.mermaid-rendered .mermaid-skeleton {
+  display: none !important;
+}
+
+.mermaid-skeleton-bar {
+  width: 64%;
+  height: 10px;
+  border-radius: 6px;
+  background: var(--har-line);
+}
+
+.mermaid-skeleton-body {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--har-step-1);
+  color: var(--har-muted);
+}
+
+.mermaid-skeleton-icon {
+  display: inline-block;
+  animation: mermaid-spin 1.4s linear infinite;
+  color: var(--har-blue);
+}
+
+.mermaid-skeleton-label {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+@keyframes mermaid-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes mermaid-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 真 SVG 渲染区 */
+.mermaid-real {
+  width: 100%;
+  padding: 1rem;
+  display: none;
+}
+
+.mermaid-host.mermaid-rendered .mermaid-real {
+  display: block;
+}
+
+.mermaid-real :deep(svg),
+.mermaid-real svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* 渲染失败 fallback：展示源码 */
+.mermaid-fallback {
+  margin: 0;
+  padding: 1rem;
+  background: var(--vp-code-block-bg, #0b1220);
+  color: var(--har-paper);
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--har-step-1);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-skeleton,
+  .mermaid-skeleton-icon {
+    animation: none !important;
+  }
+}

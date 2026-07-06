@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="940" viewBox="0 0 1440 940" role="img" aria-labelledby="title desc">
+  <title id="title">HAR Skills capability tree</title>
+  <desc id="desc">A tree-style mind map showing HAR Skills agent access, parsing, inspection, analysis, operations, comparison, and export capabilities.</desc>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    .bg {
+      fill: #f8fafc;
+    }
+    .grid {
+      stroke: #e2e8f0;
+      stroke-width: 1;
+      opacity: 0.55;
+    }
+    .title {
+      fill: #0f172a;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 34px;
+      font-weight: 780;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      fill: #475569;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      font-weight: 450;
+      letter-spacing: 0;
+    }
+    .root-card {
+      fill: #0f172a;
+      filter: drop-shadow(0 16px 34px rgba(15, 23, 42, 0.2));
+    }
+    .root-title {
+      fill: #ffffff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 23px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+    .root-subtitle {
+      fill: #cbd5e1;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+    .tag {
+      fill: #d9f99d;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      font-weight: 720;
+      letter-spacing: 0;
+    }
+    .connector {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      opacity: 0.55;
+    }
+    .card {
+      fill: #ffffff;
+      stroke: #dbe4ee;
+      stroke-width: 1;
+      filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.08));
+    }
+    .branch-title {
+      fill: #111827;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 21px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+    .branch-summary {
+      fill: #64748b;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      font-weight: 520;
+      letter-spacing: 0;
+    }
+    .item {
+      fill: #334155;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      font-weight: 470;
+      letter-spacing: 0;
+    }
+    .footer {
+      fill: #64748b;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+  </style>
+
+  <rect class="bg" width="1440" height="940" />
+  <path class="grid" d="M 0 96 H 1440 M 0 824 H 1440 M 340 116 V 812 M 870 116 V 812" />
+
+  <text class="title" x="58" y="64"><tspan x="58" dy="0">HAR Skills Capability Tree</tspan></text>
+  <text class="subtitle" x="58" y="95"><tspan x="58" dy="0">AI-native HAR analysis for agents, CLIs, SDKs, and automation pipelines</tspan></text>
+
+  <g id="root">
+    <rect class="root-card" x="62" y="386" width="248" height="120" rx="8" />
+    <rect x="84" y="408" width="94" height="24" rx="6" fill="#1e293b" />
+    <text class="tag" x="98" y="425"><tspan x="98" dy="0">AI-native</tspan></text>
+    <text class="root-title" x="86" y="462"><tspan x="86" dy="0">HAR Skills</tspan></text>
+    <text class="root-subtitle" x="86" y="488"><tspan x="86" dy="0">HTTP Archive toolkit</tspan></text>
+  </g>
+
+  <g id="connectors">
+    <path class="connector" d="M 310 446 C 351 446, 351 238, 380 238" stroke="#2563eb" />
+<path class="connector" d="M 310 446 C 658 446, 658 238, 910 238" stroke="#0891b2" />
+<path class="connector" d="M 310 446 C 351 446, 351 463, 380 463" stroke="#16a34a" />
+<path class="connector" d="M 310 446 C 658 446, 658 463, 910 463" stroke="#9333ea" />
+<path class="connector" d="M 310 446 C 351 446, 351 688, 380 688" stroke="#ea580c" />
+<path class="connector" d="M 310 446 C 658 446, 658 688, 910 688" stroke="#475569" />
+  </g>
+
+  <g id="branches">
+    <g class="branch" id="agent-access">
+<rect class="card" x="380" y="150" width="450" height="204" rx="8" />
+<rect x="380" y="150" width="8" height="204" rx="4" fill="#2563eb" />
+<circle cx="415" cy="186" r="10" fill="#2563eb" opacity="0.18" />
+<circle cx="415" cy="186" r="5" fill="#2563eb" />
+<text class="branch-title" x="432" y="185"><tspan x="432" dy="0">Agent Access</tspan></text>
+<text class="branch-summary" x="408" y="216"><tspan x="408" dy="0">AI-first entry points</tspan></text>
+<circle cx="408" cy="243" r="3.5" fill="#2563eb" />
+<text class="item" x="424" y="248"><tspan x="424" dy="0">CLAUDE.md skill guide</tspan></text>
+<circle cx="408" cy="266" r="3.5" fill="#2563eb" />
+<text class="item" x="424" y="271"><tspan x="424" dy="0">24 CLI tool calls</tspan></text>
+<circle cx="408" cy="289" r="3.5" fill="#2563eb" />
+<text class="item" x="424" y="294"><tspan x="424" dy="0">Go SDK embedding</tspan></text>
+<circle cx="408" cy="312" r="3.5" fill="#2563eb" />
+<text class="item" x="424" y="317"><tspan x="424" dy="0">MCP wrapper ready</tspan></text>
+</g>
+<g class="branch" id="ingest-and-parse">
+<rect class="card" x="910" y="150" width="450" height="204" rx="8" />
+<rect x="910" y="150" width="8" height="204" rx="4" fill="#0891b2" />
+<circle cx="945" cy="186" r="10" fill="#0891b2" opacity="0.18" />
+<circle cx="945" cy="186" r="5" fill="#0891b2" />
+<text class="branch-title" x="962" y="185"><tspan x="962" dy="0">Ingest &amp; Parse</tspan></text>
+<text class="branch-summary" x="938" y="216"><tspan x="938" dy="0">Turn captures into structured data</tspan></text>
+<circle cx="938" cy="243" r="3.5" fill="#0891b2" />
+<text class="item" x="954" y="248"><tspan x="954" dy="0">file, bytes, reader, stdin</tspan></text>
+<circle cx="938" cy="266" r="3.5" fill="#0891b2" />
+<text class="item" x="954" y="271"><tspan x="954" dy="0">gzip auto-detect</tspan></text>
+<circle cx="938" cy="289" r="3.5" fill="#0891b2" />
+<text class="item" x="954" y="294"><tspan x="954" dy="0">standard and optimized parsers</tspan></text>
+<circle cx="938" cy="312" r="3.5" fill="#0891b2" />
+<text class="item" x="954" y="317"><tspan x="954" dy="0">lazy and streaming workflows</tspan></text>
+</g>
+<g class="branch" id="inspect-and-search">
+<rect class="card" x="380" y="375" width="450" height="204" rx="8" />
+<rect x="380" y="375" width="8" height="204" rx="4" fill="#16a34a" />
+<circle cx="415" cy="411" r="10" fill="#16a34a" opacity="0.18" />
+<circle cx="415" cy="411" r="5" fill="#16a34a" />
+<text class="branch-title" x="432" y="410"><tspan x="432" dy="0">Inspect &amp; Search</tspan></text>
+<text class="branch-summary" x="408" y="441"><tspan x="408" dy="0">Find the requests that matter</tspan></text>
+<circle cx="408" cy="468" r="3.5" fill="#16a34a" />
+<text class="item" x="424" y="473"><tspan x="424" dy="0">info, list, find</tspan></text>
+<circle cx="408" cy="491" r="3.5" fill="#16a34a" />
+<text class="item" x="424" y="496"><tspan x="424" dy="0">URL, regex, method, status</tspan></text>
+<circle cx="408" cy="514" r="3.5" fill="#16a34a" />
+<text class="item" x="424" y="519"><tspan x="424" dy="0">headers, cookies, domains</tspan></text>
+<circle cx="408" cy="537" r="3.5" fill="#16a34a" />
+<text class="item" x="424" y="542"><tspan x="424" dy="0">timing, waterfall, content</tspan></text>
+</g>
+<g class="branch" id="analyze">
+<rect class="card" x="910" y="375" width="450" height="204" rx="8" />
+<rect x="910" y="375" width="8" height="204" rx="4" fill="#9333ea" />
+<circle cx="945" cy="411" r="10" fill="#9333ea" opacity="0.18" />
+<circle cx="945" cy="411" r="5" fill="#9333ea" />
+<text class="branch-title" x="962" y="410"><tspan x="962" dy="0">Analyze</tspan></text>
+<text class="branch-summary" x="938" y="441"><tspan x="938" dy="0">Explain risk and performance</tspan></text>
+<circle cx="938" cy="468" r="3.5" fill="#9333ea" />
+<text class="item" x="954" y="473"><tspan x="954" dy="0">security audit</tspan></text>
+<circle cx="938" cy="491" r="3.5" fill="#9333ea" />
+<text class="item" x="954" y="496"><tspan x="954" dy="0">performance score</tspan></text>
+<circle cx="938" cy="514" r="3.5" fill="#9333ea" />
+<text class="item" x="954" y="519"><tspan x="954" dy="0">cache analysis</tspan></text>
+<circle cx="938" cy="537" r="3.5" fill="#9333ea" />
+<text class="item" x="954" y="542"><tspan x="954" dy="0">connection reuse</tspan></text>
+<circle cx="938" cy="560" r="3.5" fill="#9333ea" />
+<text class="item" x="954" y="565"><tspan x="954" dy="0">duplicate detection</tspan></text>
+</g>
+<g class="branch" id="operate">
+<rect class="card" x="380" y="600" width="450" height="204" rx="8" />
+<rect x="380" y="600" width="8" height="204" rx="4" fill="#ea580c" />
+<circle cx="415" cy="636" r="10" fill="#ea580c" opacity="0.18" />
+<circle cx="415" cy="636" r="5" fill="#ea580c" />
+<text class="branch-title" x="432" y="635"><tspan x="432" dy="0">Operate</tspan></text>
+<text class="branch-summary" x="408" y="666"><tspan x="408" dy="0">Clean, transform, and replay</tspan></text>
+<circle cx="408" cy="693" r="3.5" fill="#ea580c" />
+<text class="item" x="424" y="698"><tspan x="424" dy="0">validate HAR spec</tspan></text>
+<circle cx="408" cy="716" r="3.5" fill="#ea580c" />
+<text class="item" x="424" y="721"><tspan x="424" dy="0">redact secrets and PII</tspan></text>
+<circle cx="408" cy="739" r="3.5" fill="#ea580c" />
+<text class="item" x="424" y="744"><tspan x="424" dy="0">rewrite URLs and headers</tspan></text>
+<circle cx="408" cy="762" r="3.5" fill="#ea580c" />
+<text class="item" x="424" y="767"><tspan x="424" dy="0">replay HTTP requests</tspan></text>
+<circle cx="408" cy="785" r="3.5" fill="#ea580c" />
+<text class="item" x="424" y="790"><tspan x="424" dy="0">extract response bodies</tspan></text>
+</g>
+<g class="branch" id="compare-and-export">
+<rect class="card" x="910" y="600" width="450" height="204" rx="8" />
+<rect x="910" y="600" width="8" height="204" rx="4" fill="#475569" />
+<circle cx="945" cy="636" r="10" fill="#475569" opacity="0.18" />
+<circle cx="945" cy="636" r="5" fill="#475569" />
+<text class="branch-title" x="962" y="635"><tspan x="962" dy="0">Compare &amp; Export</tspan></text>
+<text class="branch-summary" x="938" y="666"><tspan x="938" dy="0">Package traffic for teams and tools</tspan></text>
+<circle cx="938" cy="693" r="3.5" fill="#475569" />
+<text class="item" x="954" y="698"><tspan x="954" dy="0">diff, merge, split</tspan></text>
+<circle cx="938" cy="716" r="3.5" fill="#475569" />
+<text class="item" x="954" y="721"><tspan x="954" dy="0">build indexes</tspan></text>
+<circle cx="938" cy="739" r="3.5" fill="#475569" />
+<text class="item" x="954" y="744"><tspan x="954" dy="0">curl, wget, Python</tspan></text>
+<circle cx="938" cy="762" r="3.5" fill="#475569" />
+<text class="item" x="954" y="767"><tspan x="954" dy="0">Postman, CSV, Markdown, HTML</tspan></text>
+<circle cx="938" cy="785" r="3.5" fill="#475569" />
+<text class="item" x="954" y="790"><tspan x="954" dy="0">JSON, JSONL, YAML, XML</tspan></text>
+</g>
+  </g>
+
+  <text class="footer" x="58" y="875"><tspan x="58" dy="0">Generated by scripts/render_feature_tree.py</tspan></text>
+</svg>

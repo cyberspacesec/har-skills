@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/andybalholm/brotli"
+	"github.com/klauspost/compress/zstd"
 )
 
 // DecodeContent 解码响应内容
@@ -182,11 +185,9 @@ func decompressIfNeeded(data []byte, mimeType string) ([]byte, error) {
 
 	// 尝试deflate解压
 	if isDeflateData(data) {
-		reader, err := zlib.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("deflate解压失败: %v", err), err)
-		}
+		// isDeflateData 仅接受通过 zlib 头部校验的 FLG 值，因此
+		// zlib.NewReader 在此处必定成功。
+		reader, _ := zlib.NewReader(bytes.NewReader(data))
 		defer reader.Close()
 
 		decompressed, err := io.ReadAll(reader)
@@ -197,25 +198,67 @@ func decompressIfNeeded(data []byte, mimeType string) ([]byte, error) {
 		return decompressed, nil
 	}
 
+	// 尝试brotli解压
+	if isBrotliData(data) {
+		reader := brotli.NewReader(bytes.NewReader(data))
+		decompressed, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("brotli解压失败: %v", err), err)
+		}
+		return decompressed, nil
+	}
+
+	// 尝试zstd解压
+	if isZstdData(data) {
+		decoder, err := zstd.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("zstd初始化失败: %v", err), err)
+		}
+		defer decoder.Close()
+
+		decompressed, err := decoder.DecodeAll(data, nil)
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("zstd解压失败: %v", err), err)
+		}
+		return decompressed, nil
+	}
+
 	return data, nil
 }
 
 // DecompressByEncoding 根据Content-Encoding值解压数据
 //
-// 支持的编码: "gzip", "deflate"
-// 不支持的编码（标准库不支持）: "br" (brotli), "zstd"
-// 多重编码（如 "gzip, deflate"）不支持，会返回错误。
+// 支持的编码: "gzip", "deflate", "br" (brotli), "zstd", "identity"
+// 多重编码（如 "gzip, deflate"）按 HTTP 语义逐层解压：
+// Content-Encoding 头按声明顺序表示包裹的层次——列表中的第一个编码
+// 是最外层（最后应用的），应最先解压。例如 "gzip, deflate" 表示数据
+// 是 gzip(deflate(original))，解压时先解 gzip 再解 deflate。
 func DecompressByEncoding(data []byte, encoding string) ([]byte, error) {
 	if len(data) == 0 {
 		return data, nil
 	}
 
 	enc := strings.ToLower(strings.TrimSpace(encoding))
+	if enc == "" || enc == "identity" {
+		return data, nil
+	}
 
-	// 检查多重编码（包含逗号分隔的多个值）
+	// 多重编码：按逗号拆分，按声明顺序正序逐层解压
+	// （列表第一个是最外层，最先解）
 	if strings.Contains(enc, ",") {
-		return nil, NewUnsupportedError(
-			fmt.Sprintf("不支持多重编码: %q，请逐层解压", encoding))
+		encodings := splitEncodings(enc)
+		current := data
+		for i, e := range encodings {
+			result, err := DecompressByEncoding(current, e)
+			if err != nil {
+				return nil, fmt.Errorf("第%d层 %q 解压失败: %w", i, e, err)
+			}
+			current = result
+		}
+		return current, nil
 	}
 
 	switch enc {
@@ -250,21 +293,49 @@ func DecompressByEncoding(data []byte, encoding string) ([]byte, error) {
 		}
 		return decompressed, nil
 	case "br":
-		return nil, NewUnsupportedError(
-			"brotli (br) 解压不被Go标准库支持，请引入第三方库如 github.com/andybalholm/brotli")
+		reader := brotli.NewReader(bytes.NewReader(data))
+		decompressed, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("brotli解压失败: %v", err), err)
+		}
+		return decompressed, nil
 	case "zstd":
-		return nil, NewUnsupportedError(
-			"zstd 解压不被Go标准库支持，请引入第三方库如 github.com/klauspost/compress/zstd")
+		decoder, err := zstd.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("zstd初始化失败: %v", err), err)
+		}
+		defer decoder.Close()
+
+		decompressed, err := decoder.DecodeAll(data, nil)
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("zstd解压失败: %v", err), err)
+		}
+		return decompressed, nil
 	default:
 		return nil, NewUnsupportedError(
 			fmt.Sprintf("不支持的Content-Encoding: %q", encoding))
 	}
 }
 
+// splitEncodings 把 "gzip, deflate, br" 拆成 ["gzip", "deflate", "br"]（去空白、忽略空段）
+func splitEncodings(enc string) []string {
+	parts := strings.Split(enc, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // CompressContent 使用指定的编码方式压缩数据
 //
-// 支持的编码: "gzip", "deflate"
-// 不支持的编码（标准库不支持）: "br" (brotli), "zstd"
+// 支持的编码: "gzip", "deflate", "br" (brotli), "zstd", "identity"
 func CompressContent(data []byte, encoding string) ([]byte, error) {
 	if len(data) == 0 {
 		return data, nil
@@ -276,33 +347,36 @@ func CompressContent(data []byte, encoding string) ([]byte, error) {
 	case "gzip":
 		var buf bytes.Buffer
 		writer := gzip.NewWriter(&buf)
-		if _, err := writer.Write(data); err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("gzip压缩失败: %v", err), err)
-		}
-		if err := writer.Close(); err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("gzip压缩失败: %v", err), err)
-		}
+		// bytes.Buffer.Write 永不返回错误，故 Write/Close 不会失败。
+		_, _ = writer.Write(data)
+		_ = writer.Close()
 		return buf.Bytes(), nil
 	case "deflate":
 		var buf bytes.Buffer
 		writer := zlib.NewWriter(&buf)
+		_, _ = writer.Write(data)
+		_ = writer.Close()
+		return buf.Bytes(), nil
+	case "br":
+		var buf bytes.Buffer
+		writer := brotli.NewWriter(&buf)
 		if _, err := writer.Write(data); err != nil {
 			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("deflate压缩失败: %v", err), err)
+				fmt.Sprintf("brotli压缩失败: %v", err), err)
 		}
 		if err := writer.Close(); err != nil {
 			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("deflate压缩失败: %v", err), err)
+				fmt.Sprintf("brotli压缩关闭失败: %v", err), err)
 		}
 		return buf.Bytes(), nil
-	case "br":
-		return nil, NewUnsupportedError(
-			"brotli (br) 压缩不被Go标准库支持，请引入第三方库如 github.com/andybalholm/brotli")
 	case "zstd":
-		return nil, NewUnsupportedError(
-			"zstd 压缩不被Go标准库支持，请引入第三方库如 github.com/klauspost/compress/zstd")
+		encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.SpeedDefault))
+		if err != nil {
+			return nil, NewHarError(ErrCodeInvalidFormat,
+				fmt.Sprintf("zstd初始化失败: %v", err), err)
+		}
+		defer encoder.Close()
+		return encoder.EncodeAll(data, nil), nil
 	default:
 		return nil, NewUnsupportedError(
 			fmt.Sprintf("不支持的压缩编码: %q", encoding))
@@ -337,4 +411,28 @@ func isDeflateData(data []byte) bool {
 	// 0x78 0x9C = default compression
 	// 0x78 0xDA = best compression
 	return data[0] == 0x78 && (data[1] == 0x01 || data[1] == 0x5e || data[1] == 0x9c || data[1] == 0xda)
+}
+
+// isZstdData 检查数据是否为 zstd 格式（通过 4 字节魔数 0x28 0xB5 0x2F 0xFD）
+func isZstdData(data []byte) bool {
+	if len(data) < 4 {
+		return false
+	}
+	return data[0] == 0x28 && data[1] == 0xb5 && data[2] == 0x2f && data[3] == 0xfd
+}
+
+// isBrotliData 启发式判断数据是否为 brotli 压缩。
+// brotli 没有像 gzip/zstd 那样的固定魔数，本函数靠尝试解码首段来判断：
+// 用 brotli.Reader 读取前若干字节，若能成功读出非空结果且无错误，则视为 brotli。
+// 误判概率很低（普通文本/JSON 几乎不会被 brotli 解码出有效字节）。
+func isBrotliData(data []byte) bool {
+	if len(data) < 4 {
+		return false
+	}
+	reader := brotli.NewReader(bytes.NewReader(data))
+	// 只探测前 64 字节，避免对大文件全量解码
+	probe := make([]byte, 64)
+	n, err := reader.Read(probe)
+	// 成功读出非零字节且无错误 → 视为 brotli
+	return err == nil && n > 0
 }

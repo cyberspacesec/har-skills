@@ -396,46 +396,36 @@ func TestDecompressByEncodingDeflate(t *testing.T) {
 }
 
 func TestDecompressByEncodingBrotli(t *testing.T) {
-	data := []byte("some data")
-
-	_, err := DecompressByEncoding(data, "br")
-	if err == nil {
-		t.Error("Expected error for brotli encoding, got nil")
+	original := []byte("brotli round-trip via DecompressByEncoding 数据")
+	compressed, err := CompressContent(original, "br")
+	if err != nil {
+		t.Fatalf("CompressContent br failed: %v", err)
 	}
 
-	harErr, ok := err.(*HarError)
-	if !ok {
-		t.Fatalf("Expected *HarError, got %T", err)
+	decompressed, err := DecompressByEncoding(compressed, "br")
+	if err != nil {
+		t.Fatalf("DecompressByEncoding br failed: %v", err)
 	}
 
-	if harErr.Code != ErrCodeUnsupported {
-		t.Errorf("Expected ErrCodeUnsupported, got %d", harErr.Code)
-	}
-
-	if !strings.Contains(harErr.Message, "brotli") || !strings.Contains(harErr.Message, "标准库") {
-		t.Errorf("Error message should mention brotli and standard library, got: %s", harErr.Message)
+	if string(decompressed) != string(original) {
+		t.Errorf("Expected '%s', got '%s'", string(original), string(decompressed))
 	}
 }
 
 func TestDecompressByEncodingZstd(t *testing.T) {
-	data := []byte("some data")
-
-	_, err := DecompressByEncoding(data, "zstd")
-	if err == nil {
-		t.Error("Expected error for zstd encoding, got nil")
+	original := []byte("zstd round-trip via DecompressByEncoding 数据")
+	compressed, err := CompressContent(original, "zstd")
+	if err != nil {
+		t.Fatalf("CompressContent zstd failed: %v", err)
 	}
 
-	harErr, ok := err.(*HarError)
-	if !ok {
-		t.Fatalf("Expected *HarError, got %T", err)
+	decompressed, err := DecompressByEncoding(compressed, "zstd")
+	if err != nil {
+		t.Fatalf("DecompressByEncoding zstd failed: %v", err)
 	}
 
-	if harErr.Code != ErrCodeUnsupported {
-		t.Errorf("Expected ErrCodeUnsupported, got %d", harErr.Code)
-	}
-
-	if !strings.Contains(harErr.Message, "zstd") || !strings.Contains(harErr.Message, "标准库") {
-		t.Errorf("Error message should mention zstd and standard library, got: %s", harErr.Message)
+	if string(decompressed) != string(original) {
+		t.Errorf("Expected '%s', got '%s'", string(original), string(decompressed))
 	}
 }
 
@@ -505,24 +495,34 @@ func TestDecompressByEncodingInvalidGzipData(t *testing.T) {
 }
 
 func TestDecompressByEncodingMultiEncoding(t *testing.T) {
-	data := []byte("some data")
+	original := []byte("multi-encoding round-trip 数据")
 
-	_, err := DecompressByEncoding(data, "gzip, deflate")
+	// gzip(deflate(original))
+	deflated, err := CompressContent(original, "deflate")
+	if err != nil {
+		t.Fatalf("CompressContent deflate failed: %v", err)
+	}
+	gzipWrapped, err := CompressContent(deflated, "gzip")
+	if err != nil {
+		t.Fatalf("CompressContent gzip failed: %v", err)
+	}
+
+	decompressed, err := DecompressByEncoding(gzipWrapped, "gzip, deflate")
+	if err != nil {
+		t.Fatalf("DecompressByEncoding multi-encoding failed: %v", err)
+	}
+
+	if string(decompressed) != string(original) {
+		t.Errorf("Expected '%s', got '%s'", string(original), string(decompressed))
+	}
+
+	// 损坏的输入：第一层编码解压失败应返回错误（含层号信息）
+	_, err = DecompressByEncoding([]byte("not compressed"), "gzip, deflate")
 	if err == nil {
-		t.Error("Expected error for multi-encoding, got nil")
+		t.Error("Expected error for corrupt multi-encoding input, got nil")
 	}
-
-	harErr, ok := err.(*HarError)
-	if !ok {
-		t.Fatalf("Expected *HarError, got %T", err)
-	}
-
-	if harErr.Code != ErrCodeUnsupported {
-		t.Errorf("Expected ErrCodeUnsupported, got %d", harErr.Code)
-	}
-
-	if !strings.Contains(harErr.Message, "多重编码") {
-		t.Errorf("Error message should mention multi-encoding, got: %s", harErr.Message)
+	if !strings.Contains(err.Error(), "第0层") {
+		t.Errorf("Error should mention layer index, got: %s", err.Error())
 	}
 }
 
@@ -608,38 +608,36 @@ func TestCompressContentDeflate(t *testing.T) {
 }
 
 func TestCompressContentBrotli(t *testing.T) {
-	data := []byte("some data")
-
-	_, err := CompressContent(data, "br")
-	if err == nil {
-		t.Error("Expected error for brotli compression, got nil")
+	original := []byte("brotli compress round-trip")
+	compressed, err := CompressContent(original, "br")
+	if err != nil {
+		t.Fatalf("CompressContent br failed: %v", err)
 	}
 
-	harErr, ok := err.(*HarError)
-	if !ok {
-		t.Fatalf("Expected *HarError, got %T", err)
+	decompressed, err := DecompressByEncoding(compressed, "br")
+	if err != nil {
+		t.Fatalf("DecompressByEncoding br failed: %v", err)
 	}
 
-	if harErr.Code != ErrCodeUnsupported {
-		t.Errorf("Expected ErrCodeUnsupported, got %d", harErr.Code)
+	if string(decompressed) != string(original) {
+		t.Errorf("Expected '%s', got '%s'", string(original), string(decompressed))
 	}
 }
 
 func TestCompressContentZstd(t *testing.T) {
-	data := []byte("some data")
-
-	_, err := CompressContent(data, "zstd")
-	if err == nil {
-		t.Error("Expected error for zstd compression, got nil")
+	original := []byte("zstd compress round-trip")
+	compressed, err := CompressContent(original, "zstd")
+	if err != nil {
+		t.Fatalf("CompressContent zstd failed: %v", err)
 	}
 
-	harErr, ok := err.(*HarError)
-	if !ok {
-		t.Fatalf("Expected *HarError, got %T", err)
+	decompressed, err := DecompressByEncoding(compressed, "zstd")
+	if err != nil {
+		t.Fatalf("DecompressByEncoding zstd failed: %v", err)
 	}
 
-	if harErr.Code != ErrCodeUnsupported {
-		t.Errorf("Expected ErrCodeUnsupported, got %d", harErr.Code)
+	if string(decompressed) != string(original) {
+		t.Errorf("Expected '%s', got '%s'", string(original), string(decompressed))
 	}
 }
 

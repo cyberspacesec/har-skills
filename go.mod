@@ -1,8 +1,10 @@
 module github.com/cyberspacesec/har-skills
 
-go 1.19
+go 1.24
 
 require (
+	github.com/andybalholm/brotli v1.2.2
+	github.com/klauspost/compress v1.19.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4

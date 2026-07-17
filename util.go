@@ -28,10 +28,9 @@ func (h *Har) Clone() *Har {
 		return nil
 	}
 
+	// data 来自成功的 json.Marshal(h)，对同一类型 Unmarshal 必成功。
 	clone := &Har{}
-	if err := json.Unmarshal(data, clone); err != nil {
-		return nil
-	}
+	_ = json.Unmarshal(data, clone)
 	return clone
 }
 

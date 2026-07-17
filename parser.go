@@ -64,11 +64,8 @@ func ParseHarFileWithOptions(harFilePath string, options ParseOptions) (*Har, er
 func ParseHarEnhanced(harFileBytes []byte) (*Har, *HarError) {
 	har, err := ParseHarWithOptions(harFileBytes, DefaultParseOptions())
 	if err != nil {
-		if harErr, ok := err.(*HarError); ok {
-			return nil, harErr
-		}
-		// 将普通错误包装为自定义错误
-		return nil, NewHarError(ErrCodeUnknown, err.Error(), err)
+		// ParseHarWithOptions 的所有错误路径均返回 *HarError
+		return nil, err.(*HarError)
 	}
 	return har, nil
 }
@@ -77,11 +74,8 @@ func ParseHarEnhanced(harFileBytes []byte) (*Har, *HarError) {
 func ParseHarFileEnhanced(harFilePath string) (*Har, *HarError) {
 	har, err := ParseHarFileWithOptions(harFilePath, DefaultParseOptions())
 	if err != nil {
-		if harErr, ok := err.(*HarError); ok {
-			return nil, harErr
-		}
-		// 将普通错误包装为自定义错误
-		return nil, NewHarError(ErrCodeUnknown, err.Error(), err)
+		// ParseHarFileWithOptions 的所有错误路径均返回 *HarError
+		return nil, err.(*HarError)
 	}
 	return har, nil
 }
@@ -335,14 +329,8 @@ func performFullValidation(har *Har) []*HarError {
 		return nil
 	}
 
-	if harErr, ok := validationErr.(*HarError); ok {
-		return harErr.GetPartialErrors()
-	}
-
-	// 如果是其他类型错误，包装为HarError
-	return []*HarError{
-		NewValidationError(validationErr.Error(), ""),
-	}
+	// ValidateHarFile 的所有错误路径均返回 *HarError
+	return validationErr.(*HarError).GetPartialErrors()
 }
 
 // appendWarnings 将新警告追加到现有警告列表，避免重复

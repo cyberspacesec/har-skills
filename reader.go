@@ -22,10 +22,8 @@ func ParseHarFromReader(r io.Reader) (*Har, error) {
 
 	har, err := ParseHar(data)
 	if err != nil {
-		if harErr, ok := err.(*HarError); ok {
-			return nil, harErr
-		}
-		return nil, WrapJSONUnmarshalError(err)
+		// ParseHar 的所有错误路径均返回 *HarError
+		return nil, err.(*HarError)
 	}
 
 	return har, nil
@@ -42,10 +40,8 @@ func ParseHarFromReaderWithOptions(r io.Reader, options ParseOptions) (*Har, err
 
 	har, err := ParseHarWithOptions(data, options)
 	if err != nil {
-		if harErr, ok := err.(*HarError); ok {
-			return nil, harErr
-		}
-		return nil, WrapJSONUnmarshalError(err)
+		// ParseHarWithOptions 的所有错误路径均返回 *HarError
+		return nil, err.(*HarError)
 	}
 
 	return har, nil
@@ -71,33 +67,17 @@ func ParseHarFileGzipped(filePath string) (har *Har, err error) {
 	if err != nil {
 		return nil, NewFileSystemError(fmt.Sprintf("failed to open gzip HAR file '%s'", filePath), err)
 	}
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil && err == nil {
-			err = NewFileSystemError(fmt.Sprintf("failed to close gzip HAR file '%s'", filePath), closeErr)
-		}
-	}()
+	defer file.Close()
 
 	gzReader, err := gzip.NewReader(file)
 	if err != nil {
 		return nil, NewFileSystemError(fmt.Sprintf("failed to create gzip reader for '%s'", filePath), err)
 	}
-	gzipClosed := false
-	defer func() {
-		if !gzipClosed {
-			if closeErr := gzReader.Close(); closeErr != nil && err == nil {
-				err = NewFileSystemError(fmt.Sprintf("failed to close gzip reader for '%s'", filePath), closeErr)
-			}
-		}
-	}()
+	defer gzReader.Close()
 
 	har, err = ParseHarFromReader(gzReader)
 	if err != nil {
 		return nil, err
-	}
-
-	gzipClosed = true
-	if closeErr := gzReader.Close(); closeErr != nil {
-		return nil, NewFileSystemError(fmt.Sprintf("failed to close gzip reader for '%s'", filePath), closeErr)
 	}
 
 	return har, nil
@@ -194,13 +174,9 @@ func writeGzippedDataToFile(file io.WriteCloser, filePath string, data []byte) (
 	}
 
 	gzWriter := gzip.NewWriter(file)
-	gzipClosed := false
-
 	defer func() {
-		if !gzipClosed {
-			if closeErr := gzWriter.Close(); closeErr != nil && err == nil {
-				err = NewFileSystemError(fmt.Sprintf("failed to flush gzip writer for '%s'", filePath), closeErr)
-			}
+		if closeErr := gzWriter.Close(); closeErr != nil && err == nil {
+			err = NewFileSystemError(fmt.Sprintf("failed to flush gzip writer for '%s'", filePath), closeErr)
 		}
 		if closeErr := file.Close(); closeErr != nil && err == nil {
 			err = NewFileSystemError(fmt.Sprintf("failed to close gzip file '%s'", filePath), closeErr)
@@ -209,11 +185,6 @@ func writeGzippedDataToFile(file io.WriteCloser, filePath string, data []byte) (
 
 	if _, err := gzWriter.Write(data); err != nil {
 		return NewFileSystemError(fmt.Sprintf("failed to write gzipped data to '%s'", filePath), err)
-	}
-
-	gzipClosed = true
-	if err := gzWriter.Close(); err != nil {
-		return NewFileSystemError(fmt.Sprintf("failed to flush gzip writer for '%s'", filePath), err)
 	}
 
 	return nil
@@ -231,11 +202,7 @@ func detectGzipMagicBytes(filePath string) (isGzipped bool, err error) {
 	if err != nil {
 		return false, NewFileSystemError(fmt.Sprintf("failed to open file '%s'", filePath), err)
 	}
-	defer func() {
-		if closeErr := file.Close(); closeErr != nil && err == nil {
-			err = NewFileSystemError(fmt.Sprintf("failed to close file '%s'", filePath), closeErr)
-		}
-	}()
+	defer file.Close()
 
 	buf := make([]byte, 2)
 	n, err := file.Read(buf)

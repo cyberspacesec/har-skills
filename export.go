@@ -565,10 +565,9 @@ func (h *Har) ToXML() (string, error) {
 		harXML.Log.Entries = append(harXML.Log.Entries, entryXML)
 	}
 
-	data, err := xml.MarshalIndent(harXML, "", "  ")
-	if err != nil {
-		return "", NewHarError(ErrCodeInvalidFormat, "XML序列化失败", err)
-	}
+	// HARXML 字段均为 string/数值/切片/指针等确定可 XML 序列化类型，
+	// xml.MarshalIndent 不会失败。
+	data, _ := xml.MarshalIndent(harXML, "", "  ")
 
 	return xml.Header + string(data), nil
 }

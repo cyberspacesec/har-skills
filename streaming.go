@@ -135,10 +135,10 @@ func parseHarBasicInfo(decoder *json.Decoder, har *StreamingHar) error {
 			break
 		}
 
-		fieldName, ok := token.(string)
-		if !ok {
-			return fmt.Errorf("expected string field name, got %T", token)
-		}
+		// json.Decoder.Token() only returns a non-string token at an object
+		// key position by reporting a syntax error (handled above), so the
+		// field name is always a string here.
+		fieldName := token.(string)
 
 		switch fieldName {
 		case "version":

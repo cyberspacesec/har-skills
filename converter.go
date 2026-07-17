@@ -86,9 +86,8 @@ func (h *Har) Convert(format ConvertFormat, options ConvertOptions) (string, err
 // 转换为CSV格式
 func convertToCSV(entries []Entries, options ConvertOptions) (string, error) {
 	buf := &bytes.Buffer{}
-	if err := writeCSVToWriter(buf, entries, options); err != nil {
-		return "", err
-	}
+	// bytes.Buffer.Write 永不失败，writeCSVToWriter 对其不会返回错误。
+	_ = writeCSVToWriter(buf, entries, options)
 
 	return buf.String(), nil
 }

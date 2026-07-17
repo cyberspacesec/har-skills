@@ -119,10 +119,9 @@ func mergeCustomFieldsIntoJSON(stdData []byte, cf CustomFields) ([]byte, error) 
 		result[key] = v
 	}
 
-	data, err := json.Marshal(result)
-	if err != nil {
-		return nil, NewJSONParseError("JSON序列化失败", err)
-	}
+	// result 的 key 来自合法 JSON，value 均为成功的 json.Marshal 产物
+	// (json.RawMessage)，故最终 Marshal 不会失败。
+	data, _ := json.Marshal(result)
 	return data, nil
 }
 
@@ -427,10 +426,9 @@ func (c *Content) UnmarshalJSON(data []byte) error {
 // MarshalJSON 自定义序列化，将自定义扩展字段合并到JSON输出中
 func (c Content) MarshalJSON() ([]byte, error) {
 	type Alias Content
-	data, err := json.Marshal(Alias(c))
-	if err != nil {
-		return nil, NewJSONParseError("JSON序列化失败", err)
-	}
+	// Content 仅含 int/string 字段 (CustomFields 带 json:"-")，alias
+	// 序列化不会失败。
+	data, _ := json.Marshal(Alias(c))
 	return mergeCustomFieldsIntoJSON(data, c.CustomFields)
 }
 

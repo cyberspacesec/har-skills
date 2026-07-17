@@ -1444,7 +1444,7 @@ func TestDecodeContentGzipCompressedNonBase64(t *testing.T) {
 	content := &Content{
 		Size:     buf.Len(),
 		MimeType: "text/plain",
-		Text:     string(buf.Bytes()),
+		Text:     buf.String(),
 		Encoding: "", // not base64
 	}
 
@@ -1470,7 +1470,7 @@ func TestDecodeContentDeflateCompressedNonBase64(t *testing.T) {
 	content := &Content{
 		Size:     buf.Len(),
 		MimeType: "text/plain",
-		Text:     string(buf.Bytes()),
+		Text:     buf.String(),
 		Encoding: "", // not base64
 	}
 

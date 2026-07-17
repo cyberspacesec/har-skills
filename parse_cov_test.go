@@ -39,6 +39,7 @@ func TestCovNewStreamingParser_EmptyAndHappy(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-JSON input, got nil")
 	}
+	assert.Nil(t, it)
 	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
 
 	// happy path

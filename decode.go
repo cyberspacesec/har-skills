@@ -85,7 +85,7 @@ func (h *Har) DecodeAllContent() ([][]byte, error) {
 			fmt.Sprintf("解码过程中有%d个错误", len(partialErrors)), nil).
 			WithMetadata("error_count", len(partialErrors))
 		for _, err := range partialErrors {
-			rootErr.AddPartialError(err)
+			rootErr = rootErr.AddPartialError(err)
 		}
 		return results, rootErr
 	}

@@ -959,7 +959,7 @@ func TestValidateURL_ParseError(t *testing.T) {
 	// Test URL that fails parsing
 	err := ValidateURL("://missing-scheme-host")
 	if err == nil {
-		t.Error("Expected error for unparseable URL")
+		t.Fatal("Expected error for unparseable URL")
 	}
 	if err.Field != "url" {
 		t.Errorf("Expected field 'url', got '%s'", err.Field)
@@ -969,7 +969,7 @@ func TestValidateURL_ParseError(t *testing.T) {
 func TestValidateURL_MissingHost(t *testing.T) {
 	err := ValidateURL("https://")
 	if err == nil {
-		t.Error("Expected error for URL with no host")
+		t.Fatal("Expected error for URL with no host")
 	}
 	if err.Field != "url.host" {
 		t.Errorf("Expected field 'url.host', got '%s'", err.Field)

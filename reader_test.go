@@ -911,7 +911,7 @@ func TestParseHarFileAuto_ReadError(t *testing.T) {
 	if err := os.Chmod(filePath, 0); err != nil {
 		t.Fatalf("failed to chmod: %v", err)
 	}
-	defer os.Chmod(filePath, 0644) // restore for cleanup
+	defer func() { _ = os.Chmod(filePath, 0644) }() // restore for cleanup
 
 	_, err := ParseHarFileAuto(filePath)
 	if err == nil {
@@ -1096,7 +1096,7 @@ func TestDetectGzipMagicBytes_ReadError(t *testing.T) {
 	if err := os.Chmod(filePath, 0); err != nil {
 		t.Fatalf("failed to chmod: %v", err)
 	}
-	defer os.Chmod(filePath, 0644) // restore for cleanup
+	defer func() { _ = os.Chmod(filePath, 0644) }() // restore for cleanup
 
 	_, err := detectGzipMagicBytes(filePath)
 	if err == nil {

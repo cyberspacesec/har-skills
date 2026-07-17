@@ -37,6 +37,7 @@ func TestCovParseHarWithLazyLoading_EmptyAndHappy(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-JSON input, got nil")
 	}
+	assert.Nil(t, lh)
 	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
 
 	// happy path: minimal valid HAR

@@ -89,7 +89,7 @@ func NewStreamingHarFromBytes(data []byte) (*StreamingHar, error) {
 
 func closeStreamingFileAfterError(file *os.File, harErr *HarError) *HarError {
 	if closeErr := file.Close(); closeErr != nil {
-		harErr.WithMetadata("closeError", closeErr.Error())
+		harErr = harErr.WithMetadata("closeError", closeErr.Error())
 	}
 	return harErr
 }

@@ -1,7 +1,6 @@
 package har
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,14 +21,6 @@ func covWriteFile(t *testing.T, name string, content []byte) string {
 	p := filepath.Join(t.TempDir(), name)
 	require.NoError(t, os.WriteFile(p, content, 0644))
 	return p
-}
-
-// covWriteJSON 在 t.TempDir() 下写入 JSON 文件，返回完整路径。
-func covWriteJSON(t *testing.T, name string, v interface{}) string {
-	t.Helper()
-	data, err := json.MarshalIndent(v, "", "  ")
-	require.NoError(t, err)
-	return covWriteFile(t, name, data)
 }
 
 // validHarJSON 返回一个最小但有效的 HAR JSON 字节切片。

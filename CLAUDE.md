@@ -703,6 +703,6 @@ GOOS=windows GOARCH=amd64 go build -o har.exe ./cmd/har/
 - All `Parse*` functions return `HARProvider`; use `.ToStandard()` to get `*Har` for full API
 
 ### Go Version & Dependencies
-- Go 1.19+
+- Go 1.24+（klauspost/compress v1.19.0 要求 go 1.24，故项目最低版本为 1.24）
 - CLI: `spf13/cobra` v1.8.0, `spf13/viper` v1.18.2
-- SDK: Zero external runtime dependencies (testify for tests only)
+- SDK: `andybalholm/brotli` v1.2.2, `klauspost/compress` v1.19.0（用于 br/zstd 解压）；testify 仅用于测试

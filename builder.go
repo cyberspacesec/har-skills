@@ -2,9 +2,12 @@ package har
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"sync"
 	"time"
 )
 
@@ -131,8 +134,44 @@ func (b *HarBuilder) AddEntryForPage(method, url, pageref string) *EntryBuilder 
 	}
 }
 
-// AddEntryFromHTTP 从HTTP请求/响应创建条目
+// AddEntryFromHTTP 从HTTP请求/响应创建条目。
+//
+// 兼容入口：startedDateTime 取当下时间、不带元数据。
+// 如需传入真实请求发起时间或服务器 IP/连接 ID 等元数据，请用 AddEntryFromHTTPWithMeta。
+//
+// 注意：本方法会消费并关闭 req.Body 与 resp.Body。若调用方仍需响应体，
+// 请先自行缓存副本（如 io.ReadAll 后用 io.NopCloser(bytes.NewReader(...)) 回填）。
 func (b *HarBuilder) AddEntryFromHTTP(req *http.Request, resp *http.Response, duration time.Duration) *HarBuilder {
+	return b.addEntryFromHTTPImpl(req, resp, time.Now(), duration, EntryMeta{})
+}
+
+// AddEntryFromHTTPWithMeta 从HTTP请求/响应创建条目，并携带真实开始时间与可选元数据。
+//
+// 适用于被上层网络安全/网络空间测绘系统作为底层库封装的场景：
+//   - startedAt 为请求真正发起的时刻（写入 HAR 的 startedDateTime），
+//     解决旧入口写死 time.Now() 导致时序错乱的问题；
+//   - meta 携带 serverIP / connection / pageref / initiator / priority / resourceType 等
+//     无法从 req/resp 推断的元数据；
+//   - 二进制响应体（图片/字体/视频等）自动 base64 编码，保证 JSON 往返无损；
+//   - HeadersSize 自动估算填充。
+//
+// 返回 *EntryBuilder 以便对生成的条目做后置定制（追加头、Cookie 等），调用 EndEntry() 回到 HarBuilder。
+// 与 AddEntryFromHTTP 一样，会消费并关闭 req.Body / resp.Body。
+func (b *HarBuilder) AddEntryFromHTTPWithMeta(req *http.Request, resp *http.Response, startedAt time.Time, duration time.Duration, meta EntryMeta) *EntryBuilder {
+	b.addEntryFromHTTPImpl(req, resp, startedAt, duration, meta)
+	har := b.ensureHar()
+	if har == nil || len(har.Log.Entries) == 0 {
+		return nil
+	}
+	// 返回指向刚追加的 entry 的 EntryBuilder，便于后置定制
+	return &EntryBuilder{
+		entry:  &har.Log.Entries[len(har.Log.Entries)-1],
+		parent: b,
+	}
+}
+
+// addEntryFromHTTPImpl 是 AddEntryFromHTTP / AddEntryFromHTTPWithMeta 的共享实现。
+func (b *HarBuilder) addEntryFromHTTPImpl(req *http.Request, resp *http.Response, startedAt time.Time, duration time.Duration, meta EntryMeta) *HarBuilder {
 	har := b.ensureHar()
 	if har == nil {
 		return b
@@ -147,16 +186,16 @@ func (b *HarBuilder) AddEntryFromHTTP(req *http.Request, resp *http.Response, du
 	}
 
 	entry := Entries{
-		StartedDateTime: time.Now(),
+		StartedDateTime: startedAt,
 		Time:            float64(duration.Milliseconds()),
 		Request: Request{
 			Method:      req.Method,
 			URL:         requestURL,
 			HTTPVersion: req.Proto,
-			Headers:     make([]Headers, 0),
-			Cookies:     make([]Cookie, 0),
+			Headers:     HeadersFromHTTP(req.Header),
+			Cookies:     CookiesFromHTTP(req.Cookies()),
 			QueryString: BuildQueryStringFromURL(requestURL),
-			HeadersSize: -1,
+			HeadersSize: EstimateHeaderSize(HeadersFromHTTP(req.Header)),
 			BodySize:    -1,
 		},
 		Response: Response{
@@ -174,39 +213,11 @@ func (b *HarBuilder) AddEntryFromHTTP(req *http.Request, resp *http.Response, du
 		},
 	}
 
-	// 转换请求头
-	for key, values := range req.Header {
-		for _, value := range values {
-			entry.Request.Headers = append(entry.Request.Headers, Headers{
-				Name:  key,
-				Value: value,
-			})
-		}
-	}
-
-	// 转换请求Cookie
-	for _, cookie := range req.Cookies() {
-		entry.Request.Cookies = append(entry.Request.Cookies, Cookie{
-			Name:     cookie.Name,
-			Value:    cookie.Value,
-			Path:     cookie.Path,
-			Domain:   cookie.Domain,
-			HTTPOnly: cookie.HttpOnly,
-			Secure:   cookie.Secure,
-		})
-	}
-
-	// 读取请求体
-	if !isNilReader(req.Body) {
-		bodyBytes, err := io.ReadAll(req.Body)
-		if err == nil && len(bodyBytes) > 0 {
-			contentType := req.Header.Get("Content-Type")
-			entry.Request.PostData = &PostData{
-				MimeType: contentType,
-				Text:     string(bodyBytes),
-			}
-			entry.Request.BodySize = len(bodyBytes)
-		}
+	// 读取请求体（会消费 req.Body）
+	postData, bodySize := PostDataFromRequest(req)
+	if postData != nil {
+		entry.Request.PostData = postData
+		entry.Request.BodySize = bodySize
 	}
 
 	// 转换响应
@@ -214,26 +225,10 @@ func (b *HarBuilder) AddEntryFromHTTP(req *http.Request, resp *http.Response, du
 		entry.Response.Status = resp.StatusCode
 		entry.Response.StatusText = resp.Status
 		entry.Response.HTTPVersion = resp.Proto
+		entry.Response.Headers = HeadersFromHTTP(resp.Header)
+		entry.Response.HeadersSize = EstimateHeaderSize(entry.Response.Headers)
 
-		for key, values := range resp.Header {
-			for _, value := range values {
-				entry.Response.Headers = append(entry.Response.Headers, Headers{
-					Name:  key,
-					Value: value,
-				})
-			}
-		}
-
-		for _, cookie := range resp.Cookies() {
-			entry.Response.Cookies = append(entry.Response.Cookies, Cookie{
-				Name:     cookie.Name,
-				Value:    cookie.Value,
-				Path:     cookie.Path,
-				Domain:   cookie.Domain,
-				HTTPOnly: cookie.HttpOnly,
-				Secure:   cookie.Secure,
-			})
-		}
+		entry.Response.Cookies = CookiesFromHTTP(resp.Cookies())
 
 		if !isNilReader(resp.Body) {
 			bodyBytes, readErr, closeErr := readAndCloseResponseBody(resp.Body)
@@ -241,18 +236,63 @@ func (b *HarBuilder) AddEntryFromHTTP(req *http.Request, resp *http.Response, du
 				entry.Response.Error = bodyErr
 			}
 			if readErr == nil {
-				entry.Response.Content = Content{
+				mimeType := resp.Header.Get("Content-Type")
+				content := Content{
 					Size:     len(bodyBytes),
-					MimeType: resp.Header.Get("Content-Type"),
-					Text:     string(bodyBytes),
+					MimeType: mimeType,
 				}
+				// 非文本 body 走 base64 编码，保证 JSON 往返无损
+				if isTextContentType(mimeType) {
+					content.Text = string(bodyBytes)
+				} else {
+					content.Text = base64.StdEncoding.EncodeToString(bodyBytes)
+					content.Encoding = "base64"
+				}
+				entry.Response.Content = content
 				entry.Response.BodySize = len(bodyBytes)
 			}
 		}
 	}
 
+	// 应用可选元数据
+	applyEntryMeta(&entry, meta)
+
 	har.Log.Entries = append(har.Log.Entries, entry)
 	return b
+}
+
+// applyEntryMeta 把 EntryMeta 中的非零字段写入 entry。
+func applyEntryMeta(entry *Entries, meta EntryMeta) {
+	if entry == nil {
+		return
+	}
+	if meta.ServerIPAddress != "" {
+		entry.ServerIPAddress = meta.ServerIPAddress
+	}
+	if meta.Connection != "" {
+		entry.Connection = meta.Connection
+	}
+	if meta.Pageref != "" {
+		entry.Pageref = meta.Pageref
+	}
+	if meta.Comment != "" {
+		entry.Comment = meta.Comment
+	}
+	if meta.InitiatorType != "" || meta.InitiatorURL != "" {
+		entry.Initiator = Initiator{
+			Type: meta.InitiatorType,
+			URL:  meta.InitiatorURL,
+		}
+		if meta.InitiatorLine > 0 {
+			entry.Initiator.LineNumber = meta.InitiatorLine
+		}
+	}
+	if meta.Priority != "" {
+		entry.Priority = meta.Priority
+	}
+	if meta.ResourceType != "" {
+		entry.ResourceType = meta.ResourceType
+	}
 }
 
 // Build 构建并返回HAR对象
@@ -533,11 +573,9 @@ func (r *Recorder) EntryCount() int {
 	if builder == nil {
 		return 0
 	}
-	har := builder.ensureHar()
-	if har == nil {
-		return 0
-	}
-	return len(har.Log.Entries)
+	// builder 非 nil 时 ensureHar 必返回非 nil 的 Har (NewHarBuilder
+	// 已初始化 b.har)。
+	return len(builder.ensureHar().Log.Entries)
 }
 
 // ToHar 生成HAR对象
@@ -640,4 +678,173 @@ func (h *Har) ToJSONLines() (string, error) {
 	var buf bytes.Buffer
 	err := WriteEntriesToWriter(h, &buf)
 	return buf.String(), err
+}
+
+// WriteEntryToWriter 将单条 HAR 条目以 JSON Lines 格式写入 Writer（一行一个 JSON 对象）。
+// 适用于"抓一条写一条"的低内存长期归档场景：无需在内存中攒成完整 *Har，
+// 上层测绘系统每抓到一个请求即可立即落盘。
+func WriteEntryToWriter(w io.Writer, entry Entries) error {
+	if isNilWriter(w) {
+		return NewInvalidFormatError("writer is nil")
+	}
+	var buf bytes.Buffer
+	encoder := json.NewEncoder(&buf)
+	if err := encoder.Encode(entry); err != nil {
+		return NewJSONParseError("failed to encode HAR entry", err)
+	}
+	return writeAllToWriter(w, buf.Bytes(), "failed to write HAR entry")
+}
+
+// AppendEntryToJSONLFile 将单条 HAR 条目以 JSON Lines 形式追加到文件。
+// 文件不存在时自动创建；存在时 O_APPEND 追加，不会读入既有内容，内存占用恒定。
+// 适合长期持续归档：每条请求一行，文件可后续用 ForEachEntryFromReader 或
+// ReadEntriesFromReader 读回，也可用 split --by 等命令分片。
+func AppendEntryToJSONLFile(path string, entry Entries) error {
+	if path == "" {
+		return NewInvalidFormatError("path is empty")
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return NewFileSystemError("failed to open HAR JSONL file", err)
+	}
+	defer f.Close()
+	return WriteEntryToWriter(f, entry)
+}
+
+// ForEachEntryFromReader 流式读取 JSON Lines 格式的条目，对每条条目调用 fn。
+// 与 ReadEntriesFromReader 不同，本函数不会把所有条目一次性读入内存，
+// 而是逐条 Decode 后立即交给回调，适合处理超大归档文件。
+// fn 返回非 nil error 时立即停止迭代并返回该错误。
+func ForEachEntryFromReader(r io.Reader, fn func(entry Entries) error) error {
+	if isNilReader(r) {
+		return NewInvalidFormatError("reader is nil")
+	}
+	if fn == nil {
+		return NewInvalidFormatError("callback is nil")
+	}
+	decoder := json.NewDecoder(r)
+	for {
+		var entry Entries
+		if err := decoder.Decode(&entry); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return WrapJSONUnmarshalError(err)
+		}
+		if err := fn(entry); err != nil {
+			return err
+		}
+	}
+}
+
+// SafeRecorder 是并发安全的 Recorder，适合上层测绘系统多协程并发抓包归档。
+// 内部用 sync.Mutex 保护所有读写操作。对于"持续累积 + 一次性导出"或
+// "并发 Capture 后定期 SaveToFile"的场景，直接使用即可，无需调用方自行加锁。
+type SafeRecorder struct {
+	mu       sync.Mutex
+	recorder *Recorder
+}
+
+// NewSafeRecorder 创建一个新的并发安全 Recorder。
+func NewSafeRecorder() *SafeRecorder {
+	return &SafeRecorder{recorder: NewRecorder()}
+}
+
+// SetCreator 设置录制器的创建者信息。
+func (s *SafeRecorder) SetCreator(name, version string) *SafeRecorder {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.recorder.SetCreator(name, version)
+	return s
+}
+
+// SetBrowser 设置浏览器信息。
+func (s *SafeRecorder) SetBrowser(name, version string) *SafeRecorder {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.recorder.SetBrowser(name, version)
+	return s
+}
+
+// Capture 并发安全地捕获一个 HTTP 请求/响应。
+// 注意：会消费并关闭 req.Body / resp.Body，调用方若仍需响应体请先缓存副本。
+func (s *SafeRecorder) Capture(req *http.Request, resp *http.Response, duration time.Duration) *SafeRecorder {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.recorder.Capture(req, resp, duration)
+	return s
+}
+
+// CaptureWithMeta 并发安全地捕获一个 HTTP 请求/响应，携带真实开始时间与元数据。
+// 详见 HarBuilder.AddEntryFromHTTPWithMeta。
+func (s *SafeRecorder) CaptureWithMeta(req *http.Request, resp *http.Response, startedAt time.Time, duration time.Duration, meta EntryMeta) *SafeRecorder {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	builder := s.recorder.ensureBuilder()
+	if builder != nil {
+		builder.AddEntryFromHTTPWithMeta(req, resp, startedAt, duration, meta)
+	}
+	return s
+}
+
+// CaptureEntry 并发安全地捕获一个预构建的 HAR 条目（不碰任何 body）。
+func (s *SafeRecorder) CaptureEntry(entry Entries) *SafeRecorder {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.recorder.CaptureEntry(entry)
+	return s
+}
+
+// EntryCount 返回已录制的条目数。
+func (s *SafeRecorder) EntryCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.recorder.EntryCount()
+}
+
+// ToHarCopy 返回内部 HAR 的深拷贝，调用方持有的副本不会因后续 Capture 而变化。
+// 适合在并发归档过程中定期导出快照。
+func (s *SafeRecorder) ToHarCopy() *Har {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	h := s.recorder.ToHar()
+	if h == nil {
+		return nil
+	}
+	return h.Clone()
+}
+
+// ToHar 返回内部 HAR 指针（在锁内取，但返回的指针指向的内存可能被后续 Capture 修改）。
+// 如需稳定快照请用 ToHarCopy。
+func (s *SafeRecorder) ToHar() *Har {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.recorder.ToHar()
+}
+
+// SaveToFile 并发安全地保存录制结果到文件（缩进 JSON）。
+func (s *SafeRecorder) SaveToFile(path string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.recorder.SaveToFile(path)
+}
+
+// SaveToFileWithOptions 保存录制结果，可选择是否缩进及是否 gzip 压缩。
+func (s *SafeRecorder) SaveToFileWithOptions(path string, indent, gzip bool) error {
+	s.mu.Lock()
+	h := s.recorder.ToHar()
+	s.mu.Unlock()
+	if h == nil {
+		return NewInvalidFormatError("Recorder为空")
+	}
+	if gzip {
+		return SaveToFileGzipped(h, path, indent)
+	}
+	return h.SaveToFile(path, indent)
 }

@@ -1,6 +1,8 @@
 # GoReleaser 配置 — HAR Skills CLI 多平台构建
 # https://goreleaser.com
 
+version: 2
+
 project_name: har-skills
 
 before:
@@ -59,7 +61,7 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     files:
       - README.md
       - LICENSE
@@ -69,7 +71,7 @@ checksum:
   name_template: "checksums.txt"
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc

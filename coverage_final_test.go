@@ -118,3 +118,68 @@ func TestCovDecompress_ZstdDecodeError(t *testing.T) {
 	_, err = decompressIfNeeded(badZstd, "")
 	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
 }
+
+// --- http_convert.go ---
+
+// Cover parseFormParams empty-body branch (http_convert.go:108-110) and
+// empty-pair continue branch (http_convert.go:113-114).
+func TestCovParseFormParams_Branches(t *testing.T) {
+	// 空 body -> 返回空切片 (line 108-110)
+	if got := parseFormParams(""); len(got) != 0 {
+		t.Fatalf("expected empty slice for empty body, got %v", got)
+	}
+	// 含空 pair（"&" 分割出空段 -> continue, line 113-114）
+	// 含无 "=" 的 pair -> Param{Name: key} (line 118-119)
+	// 含 key=value -> Param{Name, Value} (line 121)
+	// "&&" 产生两个空段；"a&" 末尾产生一个空段；"noeq" 无 "="
+	params := parseFormParams("&&key=&noeq&k=v&")
+	if len(params) != 3 {
+		t.Fatalf("expected 3 params (empty pairs skipped), got %d (%v)", len(params), params)
+	}
+	if params[0].Name != "key" || params[0].Value != "" {
+		t.Errorf("params[0] = %+v, want Name=key Value=''", params[0])
+	}
+	if params[1].Name != "noeq" {
+		t.Errorf("params[1].Name = %q, want noeq", params[1].Name)
+	}
+	if params[2].Name != "k" || params[2].Value != "v" {
+		t.Errorf("params[2] = %+v, want Name=k Value=v", params[2])
+	}
+}
+
+// Cover isTextContentType binary application subtype branch (http_convert.go:150-152).
+func TestCovIsTextContentType_BinaryApplication(t *testing.T) {
+	binary := []string{
+		"application/pdf",
+		"application/zip",
+		"application/gzip",
+		"application/octet-stream",
+		"application/font-woff",
+		"image/png",
+		"audio/mpeg",
+		"video/mp4",
+	}
+	for _, m := range binary {
+		if isTextContentType(m) {
+			t.Errorf("isTextContentType(%q) = true, want false", m)
+		}
+	}
+}
+
+// --- redact.go ---
+
+// Cover redactJSONBody Unmarshal-error defensive branch (redact.go:366-369).
+// 直接调用 redactJSONBody，传入 Unmarshal 失败的输入以触发防御分支。
+func TestCovRedactJSONBody_UnmarshalError(t *testing.T) {
+	// 非法 JSON：值缺失
+	text := `{"key": }`
+	opts := DefaultRedactOptions()
+	out, ok := redactJSONBody(text, opts, "***", nil)
+	// 走防御分支应返回 (text, false)
+	if ok != false {
+		t.Errorf("expected ok=false for invalid JSON, got %v", ok)
+	}
+	if out != text {
+		t.Errorf("expected output==input for defensive branch, got %q", out)
+	}
+}

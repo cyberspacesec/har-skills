@@ -92,3 +92,29 @@ func TestCovSafeRecorder_NilHarBranches(t *testing.T) {
 		t.Fatalf("expected nil from nil SafeRecorder.ToHarCopy")
 	}
 }
+
+// --- decode.go ---
+
+// Cover DecompressByEncoding brotli error branch (decode.go:294-297).
+// 用户显式传 "br" 绕过 isBrotliData 探测，损坏 brotli 数据使 io.ReadAll 失败。
+func TestCovDecompressByEncoding_BrotliError(t *testing.T) {
+	// 0x21 是 brotli 常见起始字节，但后续损坏使解码立即失败
+	badBrotli := []byte{0x21, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	_, err := DecompressByEncoding(badBrotli, "br")
+	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
+}
+
+// Cover DecompressByEncoding zstd DecodeAll error branch (decode.go:308-311)
+// and decompressIfNeeded zstd error branch (decode.go after edit).
+// 合法 zstd magic + 损坏 frame 使 DecodeAll 报 reserved block type。
+func TestCovDecompress_ZstdDecodeError(t *testing.T) {
+	badZstd := []byte{0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00}
+
+	// DecompressByEncoding 显式传 "zstd"
+	_, err := DecompressByEncoding(badZstd, "zstd")
+	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
+
+	// decompressIfNeeded 通过 isZstdData(magic 校验) 进入分支，DecodeAll 报错
+	_, err = decompressIfNeeded(badZstd, "")
+	assertHarErrorCode(t, err, ErrCodeInvalidFormat)
+}

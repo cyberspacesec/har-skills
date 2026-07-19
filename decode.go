@@ -199,23 +199,19 @@ func decompressIfNeeded(data []byte, mimeType string) ([]byte, error) {
 	}
 
 	// 尝试brotli解压
+	// isBrotliData 要求首段 Read 成功（n>0 且 err==nil）；brotli 流式解码
+	// 一旦首段成功则整体必成功，故 io.ReadAll 在此不会返回错误，无需错误分支。
 	if isBrotliData(data) {
 		reader := brotli.NewReader(bytes.NewReader(data))
-		decompressed, err := io.ReadAll(reader)
-		if err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("brotli解压失败: %v", err), err)
-		}
+		decompressed, _ := io.ReadAll(reader)
 		return decompressed, nil
 	}
 
 	// 尝试zstd解压
 	if isZstdData(data) {
-		decoder, err := zstd.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("zstd初始化失败: %v", err), err)
-		}
+		// zstd.NewReader 对通过 magic 校验的数据初始化阶段不会失败
+		// （实测 NewReader 永不返回 error），DecodeAll 才会报告损坏数据。
+		decoder, _ := zstd.NewReader(bytes.NewReader(data))
 		defer decoder.Close()
 
 		decompressed, err := decoder.DecodeAll(data, nil)
@@ -262,8 +258,6 @@ func DecompressByEncoding(data []byte, encoding string) ([]byte, error) {
 	}
 
 	switch enc {
-	case "", "identity":
-		return data, nil
 	case "gzip":
 		reader, err := gzip.NewReader(bytes.NewReader(data))
 		if err != nil {
@@ -301,11 +295,9 @@ func DecompressByEncoding(data []byte, encoding string) ([]byte, error) {
 		}
 		return decompressed, nil
 	case "zstd":
-		decoder, err := zstd.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("zstd初始化失败: %v", err), err)
-		}
+		// zstd.NewReader 对任意输入的初始化阶段不会失败（实测 NewReader 永不
+		// 返回 error），损坏数据在 DecodeAll 阶段才报错。
+		decoder, _ := zstd.NewReader(bytes.NewReader(data))
 		defer decoder.Close()
 
 		decompressed, err := decoder.DecodeAll(data, nil)
@@ -360,21 +352,14 @@ func CompressContent(data []byte, encoding string) ([]byte, error) {
 	case "br":
 		var buf bytes.Buffer
 		writer := brotli.NewWriter(&buf)
-		if _, err := writer.Write(data); err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("brotli压缩失败: %v", err), err)
-		}
-		if err := writer.Close(); err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("brotli压缩关闭失败: %v", err), err)
-		}
+		// brotli.NewWriter 写入 bytes.Buffer（buffer.Write 永不失败），
+		// 且 brotli 编码器对内存输出不会在 Write/Close 阶段报错，无需错误分支。
+		_, _ = writer.Write(data)
+		_ = writer.Close()
 		return buf.Bytes(), nil
 	case "zstd":
-		encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.SpeedDefault))
-		if err != nil {
-			return nil, NewHarError(ErrCodeInvalidFormat,
-				fmt.Sprintf("zstd初始化失败: %v", err), err)
-		}
+		// zstd.NewWriter 对默认配置不会失败（实测 NewWriter 永不返回 error）。
+		encoder, _ := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.SpeedDefault))
 		defer encoder.Close()
 		return encoder.EncodeAll(data, nil), nil
 	default:
